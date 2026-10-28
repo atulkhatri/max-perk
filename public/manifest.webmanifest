@@ -1,0 +1,14 @@
+{
+  "name": "Card Offers",
+  "short_name": "Card Offers",
+  "description": "Know which Canadian credit card to use for every purchase.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#123f2e",
+  "background_color": "#f4f1ea",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
