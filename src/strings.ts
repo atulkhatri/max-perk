@@ -64,6 +64,9 @@ export const strings = {
     assumptionsTitle: 'Assumptions behind this answer',
     bestForCoverage: 'Best for coverage',
     bestForRewards: 'Best for rewards',
+    tipBadge: 'Tip',
+    sourceLink: 'Source',
+    cardTipsTitle: 'Card tips',
   },
   wallet: {
     title: 'Your wallet',

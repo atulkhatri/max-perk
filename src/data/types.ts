@@ -46,6 +46,27 @@ export interface CardBenefit {
   note?: string;
 }
 
+/** A ranking assumption with an optional link to the official source page. */
+export interface Assumption {
+  text: string;
+  /** Official issuer/bank page backing this note (never an aggregator). */
+  sourceUrl?: string;
+}
+
+/** rankingNotes accept plain strings (linked to the card's primary source)
+ *  or explicit { text, sourceUrl } entries for notes backed by another
+ *  official page (e.g. a bank's upcoming-changes notice). */
+export type RankingNote = string | Assumption;
+
+/** A prominent usage tip shown on the card (e.g. use an annual credit).
+ *  Tips never affect ranking math. */
+export interface CardTip {
+  label: string;
+  detail: string;
+  /** Purchase categories where the tip is relevant; shown for all when omitted. */
+  categories?: EarnCategory[];
+}
+
 export interface CardSeed {
   id: string;
   name: string;
@@ -66,7 +87,9 @@ export interface CardSeed {
   caps: EarnCap[];
   conditions: string[];
   /** Card-specific caveats surfaced as ranking assumptions. */
-  rankingNotes: string[];
+  rankingNotes: RankingNote[];
+  /** Prominent usage tips surfaced on the card; never ranking math. */
+  tips?: CardTip[];
   benefits: Record<BenefitKey, CardBenefit>;
   dataAsOf: string;
   sourceUrls: string[];

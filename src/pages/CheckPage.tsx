@@ -192,22 +192,12 @@ export function CheckPage(): ReactElement {
             {strings.check.resultsTitle} — {result.merchant.name} · {resultCategoryLabel} ({formatCAD(result.spendUsed)})
             {result.mode === 'coverage' ? ` · ${strings.check.bestForCoverage}` : ''}
           </h2>
-          {result.ranked.map((row, index) => (
-            <RankedCardView key={row.card.id} row={row} isWinner={index === 0} />
-          ))}
-
-          <div className="card">
-            <h2 className="section-title" style={{ marginTop: 0 }}>{strings.check.assumptionsTitle}</h2>
-            <ul className="assumption-list">
-              {result.assumptions.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          </div>
-
           {showLoyalty && loyalty && (
-            <div className="card">
-              <h2 className="section-title" style={{ marginTop: 0 }}>{strings.loyalty.title}: {loyalty.name}</h2>
+            <div className="card tip-callout">
+              <div className="tip-head">
+                <span className="badge">{strings.check.tipBadge}</span>
+                <span className="tip-title">{strings.loyalty.title}: {loyalty.name}</span>
+              </div>
               <p className="muted">{loyalty.headline}</p>
               <p className="muted">{loyalty.stackNote}</p>
               <div className="row">
@@ -222,6 +212,25 @@ export function CheckPage(): ReactElement {
               </div>
             </div>
           )}
+          {result.ranked.map((row, index) => (
+            <RankedCardView key={row.card.id} row={row} isWinner={index === 0} />
+          ))}
+
+          <div className="card">
+            <h2 className="section-title" style={{ marginTop: 0 }}>{strings.check.assumptionsTitle}</h2>
+            <ul className="assumption-list">
+              {result.assumptions.map((note) => (
+                <li key={note.text}>
+                  {note.text}
+                  {note.sourceUrl && (
+                    <a className="source-link" href={note.sourceUrl} target="_blank" rel="noreferrer">
+                      {strings.check.sourceLink}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {winnerProgram && (
             <div className="card">

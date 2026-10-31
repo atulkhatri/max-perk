@@ -247,6 +247,20 @@ a:focus-visible {
 
 .assumption-list, .plain-list { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--muted); }
 .assumption-list li, .plain-list li { margin-top: 4px; }
+.assumption-list .source-link { margin-left: 6px; font-size: 12px; }
+
+/* Prominent tip callouts: loyalty nudges and card usage tips render here,
+ * above the ranked list and at the top of each card. */
+.tip-callout {
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.tip-callout .tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.tip-callout p { margin: 4px 0 0; font-size: 13px; }
+.tip-title { font-weight: 700; font-size: 14px; }
 
 .tabbar {
   position: fixed;

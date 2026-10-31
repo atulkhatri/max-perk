@@ -47,7 +47,8 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - Show points and dollar value side by side; never points alone.
 - Accept an optional spend amount; use it to account for caps and tiered earn rates.
 - Handle category bonuses, merchant-specific rates, and earn caps in the ranking.
-- State key assumptions behind each recommendation (e.g., assumed point value) so the user can trust it.
+- State key assumptions behind each recommendation (e.g., assumed point value) so the user can trust it. Every card-level assumption links to the official issuer page it came from (no aggregator links, no blanket "confirm on the issuer page" filler).
+- Only official issuer/bank pages may source rates, credits, fees, and offers; unverified fields stay flagged until a curator verifies them in a browser.
 
 ### Redemption guidance
 - Show best-value redemption options for the recommended card's program.
@@ -65,12 +66,14 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ### Reminders & bank offers
 - Show contextual benefit reminders tied to the purchase (e.g., rental coverage conditions, warranty activation).
-- Track merchant/statement-credit offers available on owned cards and factor applicable ones into the recommendation.
+- Surface card usage tips (e.g., unused annual dining/travel credits, roaming credits) prominently on the card for relevant categories. Tips never affect ranking math.
+- Track merchant/statement-credit offers available on owned cards and factor applicable ones into the recommendation. An offer stays on a card only while an official issuer page confirms it; v1 samples are labelled illustrative.
 
 ### Loyalty suggestions
-- Flag store loyalty programs relevant to the merchant.
+- Flag store loyalty programs relevant to the merchant as a prominent tip directly above the ranked answer (never below the fold), with signup guidance.
 - Explain the extra earn or stacking opportunity and how to sign up.
 - Mark whether the user already uses it (user-toggled) to avoid repeat nudges.
+- Loyalty programs are tracked for the stack-and-save nudge only: no earn math, no redemption modelling.
 
 ## Out of scope (v1)
 - Automatic card import via bank connections; card applications or approvals.

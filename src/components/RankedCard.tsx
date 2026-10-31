@@ -35,6 +35,20 @@ export function RankedCardView({ row, isWinner }: { row: RankedCard; isWinner: b
         ))}
       </div>
 
+      {row.tips.length > 0 && (
+        <div className="tip-callout">
+          {row.tips.map((tip) => (
+            <div key={tip.label}>
+              <div className="tip-head">
+                <span className="badge">{strings.check.tipBadge}</span>
+                <span className="tip-title">{tip.label}</span>
+              </div>
+              <p className="muted">{tip.detail}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {row.coverageNotes.length > 0 && (
         <ul className="plain-list">
           {row.coverageNotes.map((note) => (
@@ -48,7 +62,14 @@ export function RankedCardView({ row, isWinner }: { row: RankedCard; isWinner: b
           <summary className="muted">{strings.check.assumptionsTitle}</summary>
           <ul className="assumption-list">
             {row.assumptions.map((note) => (
-              <li key={note}>{note}</li>
+              <li key={note.text}>
+                {note.text}
+                {note.sourceUrl && (
+                  <a className="source-link" href={note.sourceUrl} target="_blank" rel="noreferrer">
+                    {strings.check.sourceLink}
+                  </a>
+                )}
+              </li>
             ))}
           </ul>
         </details>

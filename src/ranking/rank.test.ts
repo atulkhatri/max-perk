@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog, validateCatalog } from '../data/seeds/catalog';
 import type { CardSeed, Catalog, MerchantSeed, ProgramSeed } from '../data/types';
-import { annualValue, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestNewCards } from './rank';
+import { annualValue, programCpp, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestNewCards } from './rank';
 
 function fixtureCard(overrides: Partial<CardSeed> & { id: string }): CardSeed {
   return {
@@ -103,7 +103,7 @@ describe('rewards ranking', () => {
     const result = rankForCheck(catalog, ['amex-cobalt'], 'loblaws');
     expect(result?.spendUsed).toBe(100);
     expect(result?.spendEntered).toBe(false);
-    expect(result?.assumptions.some((a) => a.includes('$100 reference basket'))).toBe(true);
+    expect(result?.assumptions.some((a) => a.text.includes('$100 reference basket'))).toBe(true);
   });
 
   it('converts per-litre fuel earn (PC at Esso)', () => {
@@ -152,7 +152,7 @@ describe('category override and custom stores', () => {
     expect(overridden.storeCardId).toBeUndefined();
     const result = rankForPurchase(cat, ['flex'], overridden, 100);
     expect(result?.ranked[0]?.points).toBe(100);
-    expect(result?.assumptions.some((a) => a.includes('chosen category'))).toBe(true);
+    expect(result?.assumptions.some((a) => a.text.includes('chosen category'))).toBe(true);
   });
 
   it('switches to coverage mode for a benefit-sensitive context', () => {
@@ -285,5 +285,45 @@ describe('new-card suggester', () => {
     const groceryOnly = [{ category: 'grocery' as const, monthlyCAD: 600 }];
     // $7,200/yr grocery vs $6,000 annualized cap: 6000×5 + 1200×1 = 31,200 pts = $312
     expect(annualValue(catalog, bmo!, groceryOnly)).toBeCloseTo(312, 0);
+  });
+});
+
+describe('issuer-verified corrections (Oct 2026)', () => {
+  it('removes the expired Rogers 1.5x redemption: cpp is face value', () => {
+    const rogers = catalog.cards.find((c) => c.id === 'rogers-red');
+    expect(programCpp(catalog, rogers!)).toBe(1.0);
+  });
+
+  it('models post-Nov-18 5% Rogers purchases on the phone bill', () => {
+    const result = rankForCheck(catalog, ['rogers-red'], 'phone-bill', 100);
+    expect(result?.ranked[0]?.points).toBe(500);
+  });
+
+  it('drops rogers-red from the delivery-app credit offer', () => {
+    const result = rankForCheck(catalog, ['rogers-red'], 'pizza-hut', 100);
+    expect(result?.ranked.find((r) => r.card.id === 'rogers-red')?.offerValueCAD).toBe(0);
+  });
+
+  it('uses official PC tier rates (World 20 at Loblaws, 35 at Shoppers)', () => {
+    const loblaws = rankForCheck(catalog, ['pc-world'], 'loblaws', 100);
+    const shoppers = rankForCheck(catalog, ['pc-world'], 'shoppers', 100);
+    expect(loblaws?.ranked[0]?.points).toBe(2000);
+    expect(shoppers?.ranked[0]?.points).toBe(3500);
+  });
+
+  it('links every card-level assumption to its official source', () => {
+    const result = rankForCheck(catalog, ['rogers-red'], 'phone-bill', 100);
+    const cardNotes = result?.ranked[0]?.assumptions ?? [];
+    expect(cardNotes.length).toBeGreaterThan(0);
+    for (const a of cardNotes) {
+      expect(a.sourceUrl).toMatch(/^https:\/\//);
+    }
+  });
+
+  it('surfaces Amex Platinum dining/travel credit tips without forcing the suggestion', () => {
+    const result = rankForCheck(catalog, ['amex-platinum', 'amex-cobalt'], 'pizza-hut', 100);
+    const plat = result?.ranked.find((r) => r.card.id === 'amex-platinum');
+    expect(plat?.tips.some((t) => t.label.includes('Dining'))).toBe(true);
+    expect(result?.ranked[0]?.card.id).toBe('amex-cobalt');
   });
 });

@@ -3,8 +3,10 @@
 // by rank.test.ts.
 
 import type {
+  Assumption,
   BenefitKey,
   CardSeed,
+  CardTip,
   Catalog,
   EarnCategory,
   MerchantSeed,
@@ -42,7 +44,9 @@ export interface RankedCard {
   offerValueCAD: number;
   totalValueCAD: number;
   appliedOfferLabels: string[];
-  assumptions: string[];
+  assumptions: Assumption[];
+  /** Usage tips relevant to this purchase; display-only, never ranking math. */
+  tips: CardTip[];
   capApplied: boolean;
   coverageScore: number;
   coverageNotes: string[];
@@ -54,7 +58,7 @@ export interface RankResult {
   mode: 'rewards' | 'coverage';
   spendUsed: number;
   spendEntered: boolean;
-  assumptions: string[];
+  assumptions: Assumption[];
 }
 
 export function programCpp(catalog: Catalog, card: CardSeed): number {
@@ -64,7 +68,7 @@ export function programCpp(catalog: Catalog, card: CardSeed): number {
 interface RewardsComputation {
   points: number;
   earnRate: number;
-  assumptions: string[];
+  assumptions: Assumption[];
   capApplied: boolean;
   fuelLitres?: number;
 }
@@ -75,16 +79,16 @@ export function computeRewards(
   merchant: MerchantSeed,
   spendCAD: number,
 ): RewardsComputation {
-  const assumptions: string[] = [];
+  const assumptions: Assumption[] = [];
   const category = merchant.earn;
 
   // Per-litre fuel earn wins for gas merchants when the card offers it there.
   if (category === 'gas' && card.fuel && (!card.fuel.merchants || card.fuel.merchants.includes(merchant.id))) {
     const litres = spendCAD / REFERENCE_FUEL_PRICE;
     const valueCAD = (litres * card.fuel.centsPerLitre) / 100;
-    assumptions.push(
-      `Fuel earn assumes ${card.fuel.centsPerLitre}¢/L at $${REFERENCE_FUEL_PRICE.toFixed(2)}/L (about ${Math.round(litres)} L).`,
-    );
+    assumptions.push({
+      text: `Fuel earn assumes ${card.fuel.centsPerLitre}¢/L at $${REFERENCE_FUEL_PRICE.toFixed(2)}/L (about ${Math.round(litres)} L).`,
+    });
     // Points are back-derived so points and dollar value stay consistent.
     const points = valueCAD; // placeholder replaced below once cpp is known
     return { points, earnRate: points / spendCAD, assumptions, capApplied: false, fuelLitres: litres };
@@ -92,7 +96,7 @@ export function computeRewards(
 
   const baseRate = card.merchantRates?.[merchant.id] ?? card.earn[category] ?? card.earn.other ?? 0;
   if (card.merchantRates?.[merchant.id] !== undefined) {
-    assumptions.push(`Merchant-specific rate at ${merchant.name}.`);
+    assumptions.push({ text: `Merchant-specific rate at ${merchant.name}.` });
   }
 
   const cap = card.caps.find((c) => c.categories.includes(category));
@@ -102,14 +106,14 @@ export function computeRewards(
   const withinCap = Math.min(spendCAD, cap.limitCAD);
   const overCap = Math.max(0, spendCAD - cap.limitCAD);
   const points = withinCap * baseRate + overCap * cap.rateAfter;
-  assumptions.push(
-    `Assumes the full ${cap.period === 'month' ? 'monthly' : 'yearly'} cap ($${cap.limitCAD.toLocaleString('en-CA')}) is still available.`,
-  );
+  assumptions.push({
+    text: `Assumes the full ${cap.period === 'month' ? 'monthly' : 'yearly'} cap ($${cap.limitCAD.toLocaleString('en-CA')}) is still available.`,
+  });
   const capApplied = overCap > 0;
   if (capApplied) {
-    assumptions.push(
-      `Purchase exceeds the cap: $${overCap.toFixed(0)} earns at the base rate of ${cap.rateAfter} per $1.`,
-    );
+    assumptions.push({
+      text: `Purchase exceeds the cap: $${overCap.toFixed(0)} earns at the base rate of ${cap.rateAfter} per $1.`,
+    });
   }
   return { points, earnRate: points / spendCAD, assumptions, capApplied };
 }
@@ -178,10 +182,22 @@ export function rankForPurchase(
     );
     const offerValueCAD = applicableOffers.reduce((sum, o) => sum + (o.valueCAD ?? 0), 0);
 
-    const assumptions = [...computed.assumptions, ...card.rankingNotes];
+    // Every card-level assumption links to an official source: explicit
+    // per-note URLs win, otherwise the card's primary issuer page.
+    const primarySource = card.sourceUrls[0];
+    const withSource = (note: Assumption): Assumption =>
+      note.sourceUrl ? note : { ...note, sourceUrl: primarySource };
+    const assumptions: Assumption[] = [
+      ...computed.assumptions.map(withSource),
+      ...card.rankingNotes.map((note) =>
+        withSource(typeof note === 'string' ? { text: note } : note),
+      ),
+    ];
     for (const offer of applicableOffers) {
-      assumptions.push(`Includes tracked offer “${offer.label}” (assumes you activated and qualify).`);
+      // Illustrative samples have no issuer page; the text says so outright.
+      assumptions.push({ text: `Includes tracked offer “${offer.label}” (assumes you activated and qualify).` });
     }
+    const tips = (card.tips ?? []).filter((t) => !t.categories || t.categories.includes(merchant.earn));
 
     let coverageScore = 0;
     const coverageNotes: string[] = [];
@@ -204,6 +220,7 @@ export function rankForPurchase(
       totalValueCAD: valueCAD + offerValueCAD,
       appliedOfferLabels: applicableOffers.map((o) => o.label),
       assumptions,
+      tips,
       capApplied: computed.capApplied,
       coverageScore,
       coverageNotes,
@@ -217,21 +234,21 @@ export function rankForPurchase(
     return b.totalValueCAD - a.totalValueCAD;
   });
 
-  const assumptions: string[] = [];
+  const assumptions: Assumption[] = [];
   const tracked = catalog.merchants.find((m) => m.id === merchant.id);
   if (!tracked) {
-    assumptions.push(
-      `“${merchant.name}” is not in the tracked store list, so merchant-specific rates do not apply; ranking by category instead.`,
-    );
+    assumptions.push({
+      text: `“${merchant.name}” is not in the tracked store list, so merchant-specific rates do not apply; ranking by category instead.`,
+    });
   } else if (tracked.earn !== merchant.earn || tracked.context !== merchant.context) {
-    assumptions.push('Using your chosen category instead of the store default.');
+    assumptions.push({ text: 'Using your chosen category instead of the store default.' });
   }
   if (!spendEntered) {
-    assumptions.push(`No amount entered, so values assume a $${REFERENCE_SPEND} reference basket.`);
+    assumptions.push({ text: `No amount entered, so values assume a $${REFERENCE_SPEND} reference basket.` });
   }
-  assumptions.push('Point values use typical best-value redemptions; see Settings for methodology.');
+  assumptions.push({ text: 'Point values use typical best-value redemptions; see Settings for methodology.' });
   if (ranked.some((r) => r.appliedOfferLabels.length > 0)) {
-    assumptions.push('Tracked offers are a curated v1 sample, not a live bank feed.');
+    assumptions.push({ text: 'Tracked offers are a curated v1 sample, not a live bank feed.' });
   }
 
   return { merchant, ranked, mode, spendUsed, spendEntered, assumptions };
