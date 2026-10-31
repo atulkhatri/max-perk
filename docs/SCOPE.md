@@ -62,5 +62,8 @@ steps) plus a link-out to the program's signup page. Users toggle
 
 ## Refresh cadence
 
-Curated catalog reviewed monthly; `dataAsOf` is stored per card and shown
-in Settings. Welcome bonuses are excluded as rotating.
+Issuer pages re-checked weekly (see `docs/CARD_DATA_REFRESH.md` and
+`data/README.md`); `dataAsOf` is stored per card and shown in Settings along
+with the live/bundled catalog source. The curated JSON publishes to Firestore
+after human verification; the app falls back to its bundled copy offline.
+Welcome bonuses are excluded as rotating.

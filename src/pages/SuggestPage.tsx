@@ -1,6 +1,6 @@
 import { useMemo, type ReactElement } from 'react';
 import { formatCAD } from '../format';
-import { catalog } from '../data/seeds/catalog';
+import { useCatalog } from '../data/catalogStore';
 import { DEFAULT_SPEND_PROFILE, SUGGEST_THRESHOLD_CAD, suggestNewCards } from '../ranking/rank';
 import { routePath } from '../router';
 import { strings } from '../strings';
@@ -8,9 +8,10 @@ import { useWallet } from '../wallet/useWallet';
 
 export function SuggestPage(): ReactElement {
   const { cardIds, loading } = useWallet();
-  const suggestions = useMemo(() => suggestNewCards(catalog, cardIds), [cardIds]);
+  const { catalog, loading: catalogLoading } = useCatalog();
+  const suggestions = useMemo(() => suggestNewCards(catalog, cardIds), [catalog, cardIds]);
 
-  if (loading) return <p className="muted">{strings.common.loading}</p>;
+  if (loading || catalogLoading) return <p className="muted">{strings.common.loading}</p>;
 
   if (cardIds.length === 0) {
     return (

@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactElement } from 'react';
 import { formatCAD } from '../format';
-import { catalog } from '../data/seeds/catalog';
+import { useCatalog } from '../data/catalogStore';
 import { strings } from '../strings';
 import { useWallet } from '../wallet/useWallet';
 
 export function WalletPage(): ReactElement {
   const { cardIds, loading, addCard, removeCard } = useWallet();
+  const { catalog, loading: catalogLoading } = useCatalog();
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -17,12 +18,12 @@ export function WalletPage(): ReactElement {
         c.issuer.toLowerCase().includes(q) ||
         c.network.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, catalog]);
 
   const owned = filtered.filter((c) => cardIds.includes(c.id));
   const others = filtered.filter((c) => !cardIds.includes(c.id));
 
-  if (loading) return <p className="muted">{strings.common.loading}</p>;
+  if (loading || catalogLoading) return <p className="muted">{strings.common.loading}</p>;
 
   const feeLabel = (fee: number): string =>
     fee === 0 ? strings.common.free : `${formatCAD(fee)}${strings.wallet.feePerYear}`;

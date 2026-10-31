@@ -48,6 +48,11 @@ The emulator UI is available at http://127.0.0.1:4000 while emulators run.
 | `npm test` | Run the ranking/catalog test suite once |
 | `npm run emulators` | Start Auth + Firestore emulators |
 | `npm run seed:emulators` | Seed the demo account + wallet (same as `node scripts/seed-emulators.mjs`) |
+| `npm run catalog:fetch` | Snapshot the 12 official issuer pages + extract fee/earn signals |
+| `npm run catalog:diff` | Diff the two latest snapshots for issuer-term changes |
+| `npm run catalog:sync:dry` | Validate the curated JSON and preview the Firestore write plan |
+| `npm run catalog:sync:emulator` | Sync the catalog into the local emulator (needs `npm run emulators`) |
+| `npm run catalog:sync -- --confirm` | Publish the catalog to production Firestore (needs a service-account key) |
 | `npm run deploy` | Build and deploy hosting + Firestore rules (needs `firebase login`) |
 
 ## Configuration
@@ -66,9 +71,11 @@ After enabling providers, deploy rules with
 
 - `src/strings.ts` — every user-visible string in one file; `APP_NAME` renames the app.
 - `src/theme/` — light/dark/system modes + accent colours, persisted per browser.
-- `src/data/seeds/` — versioned curated catalog: 12 cards, 12 programs,
-  26 merchants, 2 loyalty programs, 4 illustrative bank offers
-  (researched 2026-10-27, reviewed monthly).
+- `data/` — curated catalog source of truth (`catalog.curated.json`: 12 cards,
+  12 programs, 26 merchants, 2 loyalty programs, 4 illustrative offers),
+  official issuer URL registry, and weekly page snapshots. See `data/README.md`.
+- `src/data/seeds/` — typed wrappers over the curated JSON (bundled fallback);
+  `src/data/catalogStore.ts` subscribes to the live Firestore catalog.
 - `src/ranking/` — pure ranking engine + suggester with tests (`rank.test.ts`).
 - `src/auth/`, `src/wallet/` — Firebase Auth and the Firestore wallet repository.
 - `src/components/`, `src/pages/` — UI surfaces (check, wallet, suggest, settings).
@@ -77,8 +84,10 @@ After enabling providers, deploy rules with
 
 ## Notes and limits (v1)
 
-- Curated data is guidance, not promises: issuers change terms. Estimates
-  state their assumptions in-app; full issuer terms always win.
+- Curated data is guidance, not promises: issuers change terms. Issuer pages
+  are re-checked weekly and the Firestore catalog updates after human
+  verification (see `docs/CARD_DATA_REFRESH.md`). Estimates state their
+  assumptions in-app; full issuer terms always win.
 - Tracked bank offers are a small illustrative sample, not a live feed.
 - Google sign-in is wired for production; local test mode signs in with a
   test Google profile (email sign-in is the primary local path).

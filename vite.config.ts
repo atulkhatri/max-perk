@@ -23,6 +23,17 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.mjs'],
+    // Fake web config so tests can import firebase-backed modules; the SDK
+    // never contacts the network on initializeApp/getAuth/getFirestore.
+    env: {
+      VITE_FIREBASE_API_KEY: 'test-key',
+      VITE_FIREBASE_AUTH_DOMAIN: 'test.firebaseapp.com',
+      VITE_FIREBASE_PROJECT_ID: 'test-project',
+      VITE_FIREBASE_STORAGE_BUCKET: 'test.appspot.com',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000',
+      VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000000000',
+      VITE_USE_EMULATORS: 'false',
+    },
   },
 });

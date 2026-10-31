@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactElement } from 'react';
 import { formatCAD, formatCpp } from '../format';
-import { catalog, loyaltyById, merchantsById, programsById } from '../data/seeds/catalog';
+import { useCatalog, useCatalogMaps } from '../data/catalogStore';
 import { rankForPurchase, resolvePurchaseMerchant } from '../ranking/rank';
 import type { EarnCategory, MerchantSeed, PurchaseContext } from '../data/types';
 import { routePath } from '../router';
@@ -42,6 +42,8 @@ function selectionFor(purchaseType: PurchaseTypeKey): { earn: EarnCategory; cont
 
 export function CheckPage(): ReactElement {
   const { cardIds, loyaltyUsed, loading, toggleLoyaltyUsed } = useWallet();
+  const { catalog, loading: catalogLoading } = useCatalog();
+  const { loyaltyById, merchantsById, programsById } = useCatalogMaps(catalog);
   const [storeQuery, setStoreQuery] = useState('Loblaws');
   const [merchantId, setMerchantId] = useState<string | undefined>('loblaws');
   const [purchaseType, setPurchaseType] = useState<PurchaseTypeKey>('grocery');
@@ -54,14 +56,14 @@ export function CheckPage(): ReactElement {
     const selected = merchantId ? merchantsById.get(merchantId) : undefined;
     if (selected && selected.name.toLowerCase() === q) return selected;
     return catalog.merchants.find((m) => m.name.toLowerCase() === q);
-  }, [storeQuery, merchantId]);
+  }, [storeQuery, merchantId, catalog, merchantsById]);
 
   const result = useMemo(
     () => (submitted ? rankForPurchase(catalog, cardIds, submitted.merchant, submitted.spend) : null),
-    [submitted, cardIds],
+    [submitted, cardIds, catalog],
   );
 
-  if (loading) return <p className="muted">{strings.common.loading}</p>;
+  if (loading || catalogLoading) return <p className="muted">{strings.common.loading}</p>;
 
   if (cardIds.length === 0) {
     return (

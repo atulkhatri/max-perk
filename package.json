@@ -12,6 +12,11 @@
     "typecheck": "tsc -b",
     "emulators": "firebase emulators:start --only auth,firestore",
     "seed:emulators": "node scripts/seed-emulators.mjs",
+    "catalog:fetch": "node scripts/fetch-issuer-pages.mjs",
+    "catalog:diff": "node scripts/fetch-issuer-pages.mjs --diff",
+    "catalog:sync:dry": "node scripts/sync-catalog-to-firestore.mjs --dry-run",
+    "catalog:sync:emulator": "node scripts/sync-catalog-to-firestore.mjs --emulator --prune",
+    "catalog:sync": "node scripts/sync-catalog-to-firestore.mjs",
     "deploy": "npm run build && firebase deploy --only hosting,firestore:rules"
   },
   "dependencies": {

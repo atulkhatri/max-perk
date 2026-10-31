@@ -123,7 +123,11 @@ export const strings = {
     methodologyBody:
       'Reward values use published point valuations and curated earn rates. Estimates are guidance, not promises — issuers change terms.',
     dataAsOf: 'Card data current as of',
-    refreshCadence: 'Curated data is reviewed monthly.',
+    refreshCadence: 'Issuer terms are re-checked weekly; updates ship after human verification.',
+    sourceLive: 'Live catalog (Firestore)',
+    sourceBundled: 'Bundled catalog (offline copy)',
+    syncedAt: 'Catalog synced',
+    perCardTitle: 'Freshness per card',
     viewTerms: 'Full issuer terms always win over in-app summaries.',
     account: 'Account',
     stringsNote: 'Every word in this app lives in one file (src/strings.ts) so copy and translations stay consistent.',

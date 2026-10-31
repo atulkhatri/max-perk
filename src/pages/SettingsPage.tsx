@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { catalog } from '../data/seeds/catalog';
+import { useCatalog } from '../data/catalogStore';
 import { strings } from '../strings';
 import { ACCENTS, THEME_MODES } from '../theme/themes';
 import { useTheme } from '../theme/useTheme';
@@ -8,6 +8,7 @@ import { useTheme } from '../theme/useTheme';
 export function SettingsPage(): ReactElement {
   const { user, signOutUser } = useAuth();
   const { mode, accent, setMode, setAccent } = useTheme();
+  const { catalog, source, meta, loading } = useCatalog();
 
   return (
     <div className="stack">
@@ -55,6 +56,20 @@ export function SettingsPage(): ReactElement {
         <p className="muted">
           {strings.settings.dataAsOf} {catalog.dataAsOf}. {strings.settings.refreshCadence}
         </p>
+        {!loading && (
+          <p className="muted">
+            {source === 'live' ? strings.settings.sourceLive : strings.settings.sourceBundled}
+            {source === 'live' && meta?.updatedAt ? ` · ${strings.settings.syncedAt} ${meta.updatedAt.slice(0, 10)}` : ''}
+          </p>
+        )}
+        <h3 className="section-title">{strings.settings.perCardTitle}</h3>
+        <ul className="plain-list">
+          {catalog.cards.map((card) => (
+            <li key={card.id}>
+              {card.name} — {card.dataAsOf}
+            </li>
+          ))}
+        </ul>
         <p className="muted">{strings.settings.viewTerms}</p>
       </div>
 

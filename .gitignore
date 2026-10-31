@@ -5,3 +5,8 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 *.local
+# Issuer-page snapshots: raw HTML/PDF payloads stay local; *.meta.json signal
+# files are versioned change history.
+data/snapshots/**/*.html
+data/snapshots/**/*.pdf
+data/snapshots/**/*.bin
