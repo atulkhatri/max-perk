@@ -134,7 +134,7 @@ export const strings = {
     drugstore: 'Drugstore',
     transit: 'Transit',
     recurring: 'Recurring bills',
-    foreign: 'Foreign currency',
+    foreign: 'Purchases in a foreign currency',
     other: 'Everything else',
     electronics: 'Electronics',
     hotels: 'Hotels',
