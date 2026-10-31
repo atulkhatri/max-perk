@@ -3,7 +3,15 @@ import { formatCAD, formatCpp, formatMultiplier, formatPoints } from '../format'
 import type { RankedCard } from '../ranking/rank';
 import { strings } from '../strings';
 
-export function RankedCardView({ row, isWinner }: { row: RankedCard; isWinner: boolean }): ReactElement {
+export function RankedCardView({
+  row,
+  isWinner,
+  onDetails,
+}: {
+  row: RankedCard;
+  isWinner: boolean;
+  onDetails: () => void;
+}): ReactElement {
   const { card } = row;
   return (
     <article className={isWinner ? 'card winner' : 'card'}>
@@ -33,6 +41,9 @@ export function RankedCardView({ row, isWinner }: { row: RankedCard; isWinner: b
         {row.appliedOfferLabels.map((label) => (
           <span className="badge ghost" key={label}>{label}</span>
         ))}
+        <button className="btn secondary small" type="button" onClick={onDetails}>
+          {strings.check.detailsButton}
+        </button>
       </div>
 
       {row.tips.length > 0 && (
@@ -57,23 +68,6 @@ export function RankedCardView({ row, isWinner }: { row: RankedCard; isWinner: b
         </ul>
       )}
 
-      {row.assumptions.length > 0 && (
-        <details style={{ marginTop: 8 }}>
-          <summary className="muted">{strings.check.assumptionsTitle}</summary>
-          <ul className="assumption-list">
-            {row.assumptions.map((note) => (
-              <li key={note.text}>
-                {note.text}
-                {note.sourceUrl && (
-                  <a className="source-link" href={note.sourceUrl} target="_blank" rel="noreferrer">
-                    {strings.check.sourceLink}
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
     </article>
   );
 }

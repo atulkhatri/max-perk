@@ -67,6 +67,9 @@ export const strings = {
     tipBadge: 'Tip',
     sourceLink: 'Source',
     cardTipsTitle: 'Card tips',
+    detailsButton: 'Details',
+    whyThisValue: 'Why this value',
+    noOffersOnCard: 'No tracked offers apply to this card for this purchase.',
   },
   wallet: {
     title: 'Your wallet',
@@ -105,6 +108,8 @@ export const strings = {
   },
   offers: {
     title: 'Offers on your cards',
+    onThisCard: 'Offers on this card',
+    noMatchNote: 'None of the tracked offers apply to your cards for this purchase.',
     illustrativeNote: 'Tracked offers are a curated sample in v1, not a live bank feed.',
   },
   suggest: {

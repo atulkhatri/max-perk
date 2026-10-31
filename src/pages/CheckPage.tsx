@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactElement } from 'react';
-import { formatCAD, formatCpp } from '../format';
+import { formatCAD } from '../format';
 import { useCatalog, useCatalogMaps } from '../data/catalogStore';
+import { CardDetailDialog } from '../components/CardDetailDialog';
 import { rankForPurchase, resolvePurchaseMerchant } from '../ranking/rank';
 import type { EarnCategory, MerchantSeed, PurchaseContext } from '../data/types';
 import { routePath } from '../router';
@@ -107,6 +108,7 @@ export function CheckPage(): ReactElement {
       customName: storeQuery.trim() || strings.categories[earn],
     });
     const parsed = parseFloat(spend);
+    setDetailId(undefined);
     setSubmitted({
       merchant,
       spend: Number.isFinite(parsed) && parsed > 0 ? parsed : undefined,
@@ -119,11 +121,13 @@ export function CheckPage(): ReactElement {
       ? strings.categories[result.merchant.context]
       : strings.categories[result.merchant.earn]
     : '';
-  const winnerProgram = winner ? programsById.get(winner.card.programId) : undefined;
   const loyalty = result?.merchant.loyaltyId ? loyaltyById.get(result.merchant.loyaltyId) : undefined;
   const showLoyalty = loyalty && result && !loyaltyUsed.includes(loyalty.id);
-  const matchingOffers = result
-    ? catalog.bankOffers.filter((o) => !o.categories || o.categories.includes(result.merchant.earn))
+  const [detailId, setDetailId] = useState<string | undefined>(undefined);
+  const detailRow = result?.ranked.find((r) => r.card.id === detailId);
+  const detailProgram = detailRow ? programsById.get(detailRow.card.programId) : undefined;
+  const detailOffers = detailRow
+    ? catalog.bankOffers.filter((o) => detailRow.appliedOfferIds.includes(o.id))
     : [];
 
   return (
@@ -213,7 +217,7 @@ export function CheckPage(): ReactElement {
             </div>
           )}
           {result.ranked.map((row, index) => (
-            <RankedCardView key={row.card.id} row={row} isWinner={index === 0} />
+            <RankedCardView key={row.card.id} row={row} isWinner={index === 0} onDetails={() => setDetailId(row.card.id)} />
           ))}
 
           <div className="card">
@@ -231,50 +235,16 @@ export function CheckPage(): ReactElement {
               ))}
             </ul>
           </div>
-
-          {winnerProgram && (
-            <div className="card">
-              <h2 className="section-title" style={{ marginTop: 0 }}>
-                {strings.redemption.title} — {winnerProgram.name}
-              </h2>
-              <ul className="plain-list">
-                {winnerProgram.redemption.map((path) => (
-                  <li key={path.label}>
-                    {path.label} — {formatCpp(path.cpp)} {strings.redemption.perPoint}
-                    {path.note ? ` (${path.note})` : ''}
-                  </li>
-                ))}
-              </ul>
-              <p className="muted">{winnerProgram.methodology}</p>
-            </div>
-          )}
-
-          {result.mode === 'coverage' && winner.coverageNotes.length > 0 && (
-            <div className="card">
-              <h2 className="section-title" style={{ marginTop: 0 }}>{strings.reminders.title}</h2>
-              <ul className="plain-list">
-                {winner.coverageNotes.map((note) => (
-                  <li key={note}>{note}</li>
-                ))}
-              </ul>
-              <p className="muted">{strings.benefits.fullTerms}</p>
-            </div>
-          )}
-
-          {matchingOffers.length > 0 && (
-            <div className="card">
-              <h2 className="section-title" style={{ marginTop: 0 }}>{strings.offers.title}</h2>
-              <ul className="plain-list">
-                {matchingOffers.map((offer) => (
-                  <li key={offer.id}>
-                    <strong>{offer.label}.</strong> {offer.detail} {offer.conditions}
-                  </li>
-                ))}
-              </ul>
-              <p className="muted">{strings.offers.illustrativeNote}</p>
-            </div>
-          )}
         </>
+      )}
+
+      {detailRow && (
+        <CardDetailDialog
+          row={detailRow}
+          program={detailProgram}
+          offers={detailOffers}
+          onClose={() => setDetailId(undefined)}
+        />
       )}
     </div>
   );

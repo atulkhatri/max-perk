@@ -44,6 +44,8 @@ export interface RankedCard {
   offerValueCAD: number;
   totalValueCAD: number;
   appliedOfferLabels: string[];
+  /** Offer ids applied to this card (for per-card detail display). */
+  appliedOfferIds: string[];
   assumptions: Assumption[];
   /** Usage tips relevant to this purchase; display-only, never ranking math. */
   tips: CardTip[];
@@ -219,6 +221,7 @@ export function rankForPurchase(
       offerValueCAD,
       totalValueCAD: valueCAD + offerValueCAD,
       appliedOfferLabels: applicableOffers.map((o) => o.label),
+      appliedOfferIds: applicableOffers.map((o) => o.id),
       assumptions,
       tips,
       capApplied: computed.capApplied,

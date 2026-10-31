@@ -227,6 +227,7 @@ describe('bank-offer factoring', () => {
     const row = result?.ranked.find((r) => r.card.id === 'amex-cobalt');
     expect(row?.offerValueCAD).toBe(20);
     expect(row?.totalValueCAD).toBeCloseTo(row!.valueCAD + 20, 2);
+    expect(row?.appliedOfferIds).toEqual(['offer-delivery-20']);
   });
 
   it('respects offer minimum spend', () => {

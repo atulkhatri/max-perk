@@ -262,6 +262,27 @@ a:focus-visible {
 .tip-callout p { margin: 4px 0 0; font-size: 13px; }
 .tip-title { font-weight: 700; font-size: 14px; }
 
+/* Card detail sheet: a plain bottom sheet on phones, centered on desktop. */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.dialog-sheet {
+  width: 100%;
+  max-width: var(--max-width);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+@media (min-width: 720px) {
+  .dialog-backdrop { align-items: center; }
+}
+
 .tabbar {
   position: fixed;
   bottom: 0;
