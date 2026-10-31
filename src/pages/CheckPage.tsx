@@ -50,6 +50,7 @@ export function CheckPage(): ReactElement {
   const [purchaseType, setPurchaseType] = useState<PurchaseTypeKey>('grocery');
   const [spend, setSpend] = useState('');
   const [submitted, setSubmitted] = useState<{ merchant: MerchantSeed; spend?: number } | null>(null);
+  const [detailId, setDetailId] = useState<string | undefined>(undefined);
 
   const matchedMerchant = useMemo(() => {
     const q = storeQuery.trim().toLowerCase();
@@ -123,7 +124,6 @@ export function CheckPage(): ReactElement {
     : '';
   const loyalty = result?.merchant.loyaltyId ? loyaltyById.get(result.merchant.loyaltyId) : undefined;
   const showLoyalty = loyalty && result && !loyaltyUsed.includes(loyalty.id);
-  const [detailId, setDetailId] = useState<string | undefined>(undefined);
   const detailRow = result?.ranked.find((r) => r.card.id === detailId);
   const detailProgram = detailRow ? programsById.get(detailRow.card.programId) : undefined;
   const detailOffers = detailRow
