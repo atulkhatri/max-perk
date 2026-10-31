@@ -66,7 +66,6 @@ export function SuggestPage(): ReactElement {
               <div className="value">{formatCAD(s.annualValueCAD, 0)}</div>
             </div>
           </div>
-          <p className="muted">{strings.suggest.feeNote}</p>
         </div>
       ))}
       <div className="card">

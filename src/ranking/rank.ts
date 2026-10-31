@@ -241,17 +241,17 @@ export function rankForPurchase(
   const tracked = catalog.merchants.find((m) => m.id === merchant.id);
   if (!tracked) {
     assumptions.push({
-      text: `“${merchant.name}” is not in the tracked store list, so merchant-specific rates do not apply; ranking by category instead.`,
+      text: `“${merchant.name}” isn't in our store list yet, so store-specific rates don't apply; ranking by category instead.`,
     });
   } else if (tracked.earn !== merchant.earn || tracked.context !== merchant.context) {
     assumptions.push({ text: 'Using your chosen category instead of the store default.' });
   }
   if (!spendEntered) {
-    assumptions.push({ text: `No amount entered, so values assume a $${REFERENCE_SPEND} reference basket.` });
+    assumptions.push({ text: `No amount entered, so values are for a $${REFERENCE_SPEND} example purchase.` });
   }
-  assumptions.push({ text: 'Point values use typical best-value redemptions; see Settings for methodology.' });
+  assumptions.push({ text: 'Point values use typical best redemptions; see Settings for details.' });
   if (ranked.some((r) => r.appliedOfferLabels.length > 0)) {
-    assumptions.push({ text: 'Tracked offers are a curated v1 sample, not a live bank feed.' });
+    assumptions.push({ text: "Offers shown are examples; check they're activated before you count on them." });
   }
 
   return { merchant, ranked, mode, spendUsed, spendEntered, assumptions };

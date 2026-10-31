@@ -99,11 +99,11 @@ describe('rewards ranking', () => {
     expect(result?.ranked[0]?.points).toBe(300 * 4 + 100 * 1);
   });
 
-  it('falls back to a $100 reference basket without spend', () => {
+  it('falls back to a $100 example purchase without spend', () => {
     const result = rankForCheck(catalog, ['amex-cobalt'], 'loblaws');
     expect(result?.spendUsed).toBe(100);
     expect(result?.spendEntered).toBe(false);
-    expect(result?.assumptions.some((a) => a.text.includes('$100 reference basket'))).toBe(true);
+    expect(result?.assumptions.some((a) => a.text.includes('$100 example purchase'))).toBe(true);
   });
 
   it('converts per-litre fuel earn (PC at Esso)', () => {

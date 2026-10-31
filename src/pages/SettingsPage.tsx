@@ -83,7 +83,6 @@ export function SettingsPage(): ReactElement {
         <button className="btn secondary" type="button" onClick={() => void signOutUser()}>
           {strings.auth.signOut}
         </button>
-        <p className="muted" style={{ marginBottom: 0 }}>{strings.settings.stringsNote}</p>
       </div>
     </div>
   );

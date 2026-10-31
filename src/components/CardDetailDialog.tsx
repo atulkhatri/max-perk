@@ -109,8 +109,6 @@ export function CardDetailDialog({
             ))}
           </ul>
         )}
-        <p className="muted">{strings.offers.illustrativeNote}</p>
-
         {program && program.redemption.length > 0 && (
           <>
             <h2 className="section-title">
