@@ -34,6 +34,9 @@ function printHelp() {
   --prune              delete remote docs missing from the JSON (stale cards)
   --project-id=X       override project id (default: env / service account / .env files)
   --service-account=P  service-account key JSON (default: $GOOGLE_APPLICATION_CREDENTIALS)
+  --access-token=T     raw OAuth access token with cloud-platform scope
+                       (default: $FIRESTORE_ACCESS_TOKEN, e.g. from
+                       gcloud auth print-access-token)
   --snapshot-ref=DIR   snapshot dir backing this curation (recorded in meta)
   --data=PATH          catalog JSON (default: data/catalog.curated.json)
 
@@ -49,6 +52,7 @@ function parseArgs(argv) {
     confirm: false,
     prune: false,
     projectId: null,
+    accessToken: process.env.FIRESTORE_ACCESS_TOKEN ?? null,
     serviceAccount: null,
     snapshotRef: null,
     data: join(ROOT, 'data', 'catalog.curated.json'),
@@ -61,6 +65,7 @@ function parseArgs(argv) {
     else if (token === '--confirm') args.confirm = true;
     else if (token === '--prune') args.prune = true;
     else if (token.startsWith('--project-id=')) args.projectId = token.slice(13);
+    else if (token.startsWith('--access-token=')) args.accessToken = token.slice(15);
     else if (token.startsWith('--service-account=')) args.serviceAccount = token.slice(18);
     else if (token.startsWith('--snapshot-ref=')) args.snapshotRef = token.slice(15);
     else if (token.startsWith('--data=')) args.data = token.slice(7);
@@ -199,9 +204,11 @@ async function main() {
   if (!args.emulator && !args.confirm) {
     throw new Error('production write needs --confirm (or use --emulator / --dry-run)');
   }
-  const token = args.emulator ? null : await serviceAccountToken(serviceAccount ?? (() => {
-    throw new Error('production sync needs a service-account key: --service-account=path.json or $GOOGLE_APPLICATION_CREDENTIALS');
-  })());
+  const token = args.emulator
+    ? null
+    : (args.accessToken ?? await serviceAccountToken(serviceAccount ?? (() => {
+      throw new Error('production sync needs credentials: --access-token=T, --service-account=path.json, or $GOOGLE_APPLICATION_CREDENTIALS');
+    })()));
   const client = createClient({ emulatorHost, projectId, token });
   console.log(`target: ${client.base}`);
 
