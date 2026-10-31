@@ -84,14 +84,18 @@ export function CardDetailDialog({
           </div>
         )}
 
-        <h2 className="section-title">{strings.check.whyThisValue}</h2>
-        <ul className="assumption-list">
-          {row.assumptions.map((note) => (
-            <li key={note.text}>
-              <SourceLinks text={note.text} sourceUrl={note.sourceUrl} />
-            </li>
-          ))}
-        </ul>
+        {row.assumptions.length > 0 && (
+          <>
+            <h2 className="section-title">{strings.check.whyThisValue}</h2>
+            <ul className="assumption-list">
+              {row.assumptions.map((note) => (
+                <li key={note.text}>
+                  <SourceLinks text={note.text} sourceUrl={note.sourceUrl} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <h2 className="section-title">{strings.offers.onThisCard}</h2>
         {offers.length === 0 ? (
@@ -107,7 +111,7 @@ export function CardDetailDialog({
         )}
         <p className="muted">{strings.offers.illustrativeNote}</p>
 
-        {program && (
+        {program && program.redemption.length > 0 && (
           <>
             <h2 className="section-title">
               {strings.redemption.title} — {row.card.name}

@@ -305,6 +305,14 @@ describe('issuer-verified corrections (Oct 2026)', () => {
     expect(result?.ranked.find((r) => r.card.id === 'rogers-red')?.offerValueCAD).toBe(0);
   });
 
+  it('applies no blanket grocery offer to every card (no official source)', () => {
+    const result = rankForCheck(catalog, ['amex-cobalt', 'tangerine'], 'loblaws', 100);
+    for (const row of result?.ranked ?? []) {
+      expect(row.offerValueCAD).toBe(0);
+      expect(row.appliedOfferIds).toEqual([]);
+    }
+  });
+
   it('uses official PC tier rates (World 20 at Loblaws, 35 at Shoppers)', () => {
     const loblaws = rankForCheck(catalog, ['pc-world'], 'loblaws', 100);
     const shoppers = rankForCheck(catalog, ['pc-world'], 'shoppers', 100);
