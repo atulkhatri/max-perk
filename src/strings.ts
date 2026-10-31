@@ -123,16 +123,7 @@ export const strings = {
     themeMode: 'Mode',
     themeAccent: 'Accent colour',
     modes: { light: 'Light', dark: 'Dark', system: 'System' },
-    dataTitle: 'About our data',
-    methodologyBody:
-      'Values use published bank rates and typical point values. Estimates are guidance, not promises — banks change terms.',
-    dataAsOf: 'Card data current as of',
-    refreshCadence: 'We re-check bank terms weekly and publish updates after review.',
-    sourceLive: 'Live data',
-    sourceBundled: 'Offline copy',
-    syncedAt: 'Updated',
-    perCardTitle: 'Card data dates',
-    viewTerms: 'Full issuer terms always win over in-app summaries.',
+    lastRefresh: 'Card data last refreshed',
     account: 'Account',
   },
   categories: {

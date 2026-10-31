@@ -8,7 +8,12 @@ import { useTheme } from '../theme/useTheme';
 export function SettingsPage(): ReactElement {
   const { user, signOutUser } = useAuth();
   const { mode, accent, setMode, setAccent } = useTheme();
-  const { catalog, source, meta, loading } = useCatalog();
+  const { catalog } = useCatalog();
+  const lastRefresh = new Date(`${catalog.dataAsOf}T00:00:00`).toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
     <div className="stack">
@@ -51,26 +56,9 @@ export function SettingsPage(): ReactElement {
       </div>
 
       <div className="card">
-        <h2 className="section-title" style={{ marginTop: 0 }}>{strings.settings.dataTitle}</h2>
-        <p className="muted">{strings.settings.methodologyBody}</p>
-        <p className="muted">
-          {strings.settings.dataAsOf} {catalog.dataAsOf}. {strings.settings.refreshCadence}
+        <p className="muted" style={{ marginBottom: 0 }}>
+          {strings.settings.lastRefresh} {lastRefresh}.
         </p>
-        {!loading && (
-          <p className="muted">
-            {source === 'live' ? strings.settings.sourceLive : strings.settings.sourceBundled}
-            {source === 'live' && meta?.updatedAt ? ` · ${strings.settings.syncedAt} ${meta.updatedAt.slice(0, 10)}` : ''}
-          </p>
-        )}
-        <h3 className="section-title">{strings.settings.perCardTitle}</h3>
-        <ul className="plain-list">
-          {catalog.cards.map((card) => (
-            <li key={card.id}>
-              {card.name} — {card.dataAsOf}
-            </li>
-          ))}
-        </ul>
-        <p className="muted">{strings.settings.viewTerms}</p>
       </div>
 
       <div className="card">
