@@ -39,8 +39,8 @@ export const strings = {
   },
   check: {
     title: 'Which card should I use?',
-    storeLabel: 'Store',
-    storePlaceholder: 'Search stores…',
+    storeLabel: 'Store (optional)',
+    storePlaceholder: 'Leave blank to rank by category',
     storeNoMatch: 'Not in our store list — ranking by the category below.',
     noStoreMatches: 'No matching stores',
     categoryLabel: 'What are you buying?',

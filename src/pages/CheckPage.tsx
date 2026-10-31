@@ -45,9 +45,9 @@ export function CheckPage(): ReactElement {
   const { cardIds, loyaltyUsed, loading, toggleLoyaltyUsed } = useWallet();
   const { catalog, loading: catalogLoading } = useCatalog();
   const { loyaltyById, merchantsById, programsById } = useCatalogMaps(catalog);
-  const [storeQuery, setStoreQuery] = useState('Loblaws');
-  const [merchantId, setMerchantId] = useState<string | undefined>('loblaws');
-  const [purchaseType, setPurchaseType] = useState<PurchaseTypeKey>('grocery');
+  const [storeQuery, setStoreQuery] = useState('');
+  const [merchantId, setMerchantId] = useState<string | undefined>(undefined);
+  const [purchaseType, setPurchaseType] = useState<PurchaseTypeKey>('other');
   const [spend, setSpend] = useState('');
   const [submitted, setSubmitted] = useState<{ merchant: MerchantSeed; spend?: number } | null>(null);
   const [detailId, setDetailId] = useState<string | undefined>(undefined);
