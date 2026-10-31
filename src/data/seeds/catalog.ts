@@ -29,6 +29,10 @@ export function validateCatalog(cat: Catalog): string[] {
 
   for (const card of cat.cards) {
     if (!programIds.has(card.programId)) errors.push(`card ${card.id}: unknown program ${card.programId}`);
+    if (card.kind !== 'credit' && card.kind !== 'debit') errors.push(`card ${card.id}: unknown kind ${card.kind}`);
+    if (card.segment !== 'personal' && card.segment !== 'business') {
+      errors.push(`card ${card.id}: unknown segment ${card.segment}`);
+    }
     for (const merchantId of Object.keys(card.merchantRates ?? {})) {
       if (!merchantIds.has(merchantId)) errors.push(`card ${card.id}: unknown merchantRate ${merchantId}`);
     }

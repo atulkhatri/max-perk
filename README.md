@@ -71,9 +71,10 @@ After enabling providers, deploy rules with
 
 - `src/strings.ts` — every user-visible string in one file; `APP_NAME` renames the app.
 - `src/theme/` — light/dark/system modes + accent colours, persisted per browser.
-- `data/` — curated catalog source of truth (`catalog.curated.json`: 12 cards,
-  12 programs, 26 merchants, 2 loyalty programs, 4 illustrative offers),
-  official issuer URL registry, and weekly page snapshots. See `data/README.md`.
+- `data/` — curated catalog source of truth (`catalog.curated.json`: 96 cards
+  across personal + business segments, 30 programs, 26 merchants, 2 loyalty
+  programs, 4 illustrative offers), official issuer URL registry (96 sources),
+  and weekly page snapshots. See `data/README.md`.
 - `src/data/seeds/` — typed wrappers over the curated JSON (bundled fallback);
   `src/data/catalogStore.ts` subscribes to the live Firestore catalog.
 - `src/ranking/` — pure ranking engine + suggester with tests (`rank.test.ts`).

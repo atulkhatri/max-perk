@@ -89,8 +89,12 @@ export function checkCatalogJson(cat) {
   const loyaltyIds = new Set((cat.loyalty ?? []).map((l) => l?.id));
 
   for (const card of cat.cards ?? []) {
-    for (const f of ['id', 'name', 'issuer', 'network', 'annualFeeCAD', 'programId', 'earn', 'caps', 'conditions', 'benefits', 'dataAsOf', 'sourceUrls']) {
+    for (const f of ['id', 'name', 'issuer', 'network', 'kind', 'segment', 'annualFeeCAD', 'programId', 'earn', 'caps', 'conditions', 'benefits', 'dataAsOf', 'sourceUrls']) {
       if (card?.[f] === undefined) errors.push(`card ${card?.id ?? '?'}: missing ${f}`);
+    }
+    if (card && card.kind !== 'credit' && card.kind !== 'debit') errors.push(`card ${card.id}: unknown kind ${card.kind}`);
+    if (card && card.segment !== 'personal' && card.segment !== 'business') {
+      errors.push(`card ${card.id}: unknown segment ${card.segment}`);
     }
     if (card && !programIds.has(card.programId)) errors.push(`card ${card.id}: unknown program ${card.programId}`);
     for (const m of Object.keys(card?.merchantRates ?? {})) {

@@ -286,9 +286,13 @@ export function suggestNewCards(
 ): Suggestion[] {
   const owned = catalog.cards.filter((c) => ownedCardIds.includes(c.id));
   if (owned.length === 0) return [];
+  const ownedSegments = new Set(owned.map((c) => c.segment));
   const bestOwnedAnnualCAD = Math.max(...owned.map((c) => annualValue(catalog, c)));
   return catalog.cards
     .filter((c) => !ownedCardIds.includes(c.id))
+    // Debit cards earn nothing to suggest; business cards only make sense for
+    // owners who already hold that segment.
+    .filter((c) => c.kind === 'credit' && ownedSegments.has(c.segment))
     .map((card) => {
       const annualValueCAD = annualValue(catalog, card);
       return { card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD: annualValueCAD - bestOwnedAnnualCAD };

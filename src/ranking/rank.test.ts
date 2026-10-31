@@ -8,6 +8,8 @@ function fixtureCard(overrides: Partial<CardSeed> & { id: string }): CardSeed {
     name: overrides.id,
     issuer: 'Test Bank',
     network: 'Visa',
+    kind: 'credit',
+    segment: 'personal',
     annualFeeCAD: 0,
     programId: 'test-program',
     earn: {},
@@ -59,8 +61,10 @@ describe('catalog seeds', () => {
     expect(validateCatalog(catalog)).toEqual([]);
   });
 
-  it('covers all 12 researched cards', () => {
-    expect(catalog.cards).toHaveLength(12);
+  it('covers the full researched catalog (12 seeds + 84 census cards)', () => {
+    expect(catalog.cards).toHaveLength(96);
+    expect(catalog.cards.filter((c) => c.segment === 'business')).toHaveLength(32);
+    expect(catalog.programs).toHaveLength(30);
   });
 });
 
@@ -239,6 +243,36 @@ describe('new-card suggester', () => {
     const cobalt = suggestions.find((s) => s.card.id === 'amex-cobalt');
     expect(cobalt).toBeDefined();
     expect(cobalt!.incrementalCAD).toBeGreaterThanOrEqual(50);
+  });
+
+  it('suggests only within owned segments (no business cards for personal wallets)', () => {
+    const suggestions = suggestNewCards(catalog, ['walmart']);
+    expect(suggestions.length).toBeGreaterThan(0);
+    expect(suggestions.every((s) => s.card.segment === 'personal')).toBe(true);
+  });
+
+  it('suggests business cards once a business card is owned', () => {
+    const suggestions = suggestNewCards(catalog, ['rbc-cashback-biz']);
+    expect(suggestions.some((s) => s.card.segment === 'business')).toBe(true);
+  });
+
+  it('never suggests debit cards (debit earns nothing to recommend)', () => {
+    const cat = fixtureCatalog([
+      fixtureCard({ id: 'owned-credit', earn: { other: 0.5 } }),
+      fixtureCard({ id: 'rich-debit', kind: 'debit', earn: { other: 99 } }),
+    ]);
+    expect(suggestNewCards(cat, ['owned-credit']).some((s) => s.card.kind === 'debit')).toBe(false);
+  });
+
+  it('ranks the full 96-card catalog without NaN or crashes', () => {
+    const ids = catalog.cards.map((c) => c.id);
+    for (const merchantId of ['loblaws', 'esso', 'best-buy']) {
+      const result = rankForCheck(catalog, ids, merchantId, 250);
+      expect(result?.ranked.length).toBeGreaterThan(0);
+      for (const row of result!.ranked) {
+        expect(Number.isFinite(row.totalValueCAD)).toBe(true);
+      }
+    }
   });
 
   it('suggests nothing for an empty wallet or a complete wallet', () => {

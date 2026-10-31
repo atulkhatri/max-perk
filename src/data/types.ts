@@ -50,7 +50,11 @@ export interface CardSeed {
   id: string;
   name: string;
   issuer: string;
-  network: 'Visa' | 'Mastercard' | 'Amex';
+  network: 'Visa' | 'Mastercard' | 'Amex' | 'Interac';
+  /** Credit cards rank and suggest normally; debit is modelled for future use. */
+  kind: 'credit' | 'debit';
+  /** Personal and business cards are suggested only within owned segments. */
+  segment: 'personal' | 'business';
   annualFeeCAD: number;
   programId: string;
   /** Points (or cash-back percent units) earned per $1. Missing = 0. */
