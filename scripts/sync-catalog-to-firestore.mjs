@@ -22,6 +22,7 @@ import {
   readDotenv,
   serviceAccountToken,
 } from './lib/firestore-rest.mjs';
+import { firebaseLoginAccessToken } from './lib/firebase-login.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,9 +41,11 @@ function printHelp() {
   --snapshot-ref=DIR   snapshot dir backing this curation (recorded in meta)
   --data=PATH          catalog JSON (default: data/catalog.curated.json)
 
-Production auth: a Firebase service-account key with the Datastore User role.
-Create one in Console > Project settings > Service accounts, store it OUTSIDE
-the repo, and point GOOGLE_APPLICATION_CREDENTIALS at it.`);
+Production auth resolves automatically, first match wins:
+  1. --access-token=T (or $FIRESTORE_ACCESS_TOKEN)
+  2. --service-account=path.json (or $GOOGLE_APPLICATION_CREDENTIALS)
+  3. your Firebase CLI login (\`firebase login\`) — no key file needed.
+Key files are never committed: store them OUTSIDE the repo.`);
 }
 
 function parseArgs(argv) {
@@ -204,11 +207,20 @@ async function main() {
   if (!args.emulator && !args.confirm) {
     throw new Error('production write needs --confirm (or use --emulator / --dry-run)');
   }
-  const token = args.emulator
-    ? null
-    : (args.accessToken ?? await serviceAccountToken(serviceAccount ?? (() => {
-      throw new Error('production sync needs credentials: --access-token=T, --service-account=path.json, or $GOOGLE_APPLICATION_CREDENTIALS');
-    })()));
+  let token = args.emulator ? null : (args.accessToken ?? null);
+  if (!args.emulator && !token) {
+    if (serviceAccount) {
+      token = await serviceAccountToken(serviceAccount);
+    } else {
+      try {
+        token = await firebaseLoginAccessToken();
+      } catch (err) {
+        throw new Error(
+          `production sync needs credentials (${err.message}); or pass --access-token=T / --service-account=path.json`,
+        );
+      }
+    }
+  }
   const client = createClient({ emulatorHost, projectId, token });
   console.log(`target: ${client.base}`);
 
