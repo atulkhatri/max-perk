@@ -2,7 +2,7 @@
 // the offline/error fallback. Reads are public (see firestore.rules), so no
 // sign-in is needed; writes happen only through scripts/sync-catalog-*.mjs.
 
-import type { Firestore, Unsubscribe } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../firebase';
 import { catalog as bundledCatalog, validateCatalog } from './seeds/catalog';
@@ -34,9 +34,140 @@ export interface CatalogState {
   loading: boolean;
 }
 
-export type CatalogUpdate =
-  | { status: 'ready'; catalog: Catalog; meta: RemoteCatalogMeta }
-  | { status: 'error'; error: Error };
+const FRESH_KEY = 'catalog-fresh-at';
+const FRESH_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readFreshAt(): number {
+  try {
+    return Number(localStorage.getItem(FRESH_KEY) ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+function writeFreshAt(now: number): void {
+  try {
+    localStorage.setItem(FRESH_KEY, String(now));
+  } catch {
+    // Private mode etc: freshness simply won't persist.
+  }
+}
+
+interface SharedCatalog {
+  refs: number;
+  state: CatalogState;
+  listeners: Set<(state: CatalogState) => void>;
+  stop: (() => void) | null;
+  started: boolean;
+}
+
+let shared: SharedCatalog | null = null;
+
+function getShared(): SharedCatalog {
+  if (!shared) {
+    shared = {
+      refs: 0,
+      state: { catalog: bundledCatalog, source: 'bundled', meta: null, loading: true },
+      listeners: new Set(),
+      stop: null,
+      started: false,
+    };
+  }
+  return shared;
+}
+
+function publish(state: CatalogState): void {
+  const current = getShared();
+  current.state = state;
+  for (const listener of [...current.listeners]) listener(state);
+}
+
+async function fetchRemoteCatalog(firestore: Firestore): Promise<{ catalog: Catalog; meta: RemoteCatalogMeta }> {
+  const { collection, doc, getDoc, getDocs } = await import('firebase/firestore');
+  const metaSnap = await getDoc(doc(firestore, CATALOG_DOC_PATH));
+  if (!metaSnap.exists()) throw new Error('remote catalog: missing meta doc (sync has not run yet?)');
+  const meta = parseMeta(metaSnap.data());
+  const [cards, programs, merchants, loyalty, bankOffers] = await Promise.all([
+    getDocs(collection(firestore, `${CATALOG_DOC_PATH}/cards`)),
+    getDocs(collection(firestore, `${CATALOG_DOC_PATH}/programs`)),
+    getDocs(collection(firestore, `${CATALOG_DOC_PATH}/merchants`)),
+    getDocs(collection(firestore, `${CATALOG_DOC_PATH}/loyalty`)),
+    getDocs(collection(firestore, `${CATALOG_DOC_PATH}/offers`)),
+  ]);
+  const catalog = assembleCatalog({
+    dataAsOf: meta.dataAsOf,
+    cards: cards.docs.map((d) => d.data()),
+    programs: programs.docs.map((d) => d.data()),
+    merchants: merchants.docs.map((d) => d.data()),
+    loyalty: loyalty.docs.map((d) => d.data()),
+    bankOffers: bankOffers.docs.map((d) => d.data()),
+  });
+  return { catalog, meta };
+}
+
+async function startShared(): Promise<void> {
+  const first = getShared();
+  if (first.started) return;
+  first.started = true;
+  try {
+    const firestore = await db;
+    // Staleness gate: a fresh bundled copy needs no collection reads at all.
+    let stale = true;
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const metaSnap = await getDoc(doc(firestore, CATALOG_DOC_PATH));
+      if (metaSnap.exists()) {
+        const meta = parseMeta(metaSnap.data());
+        publish({ ...getShared().state, meta });
+        if (meta.dataAsOf === bundledCatalog.dataAsOf && Date.now() - readFreshAt() < FRESH_TTL_MS) {
+          stale = false;
+        }
+      }
+    } catch {
+      stale = true;
+    }
+    if (!stale) {
+      publish({ ...getShared().state, loading: false });
+      return;
+    }
+    try {
+      const { catalog, meta } = await fetchRemoteCatalog(firestore);
+      writeFreshAt(Date.now());
+      if (getShared().started) publish({ catalog, source: 'live', meta, loading: false });
+    } catch {
+      if (getShared().started) publish({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
+      return;
+    }
+    // Meta-only listener: re-fetch collections only when a sync changes them.
+    try {
+      const { doc, onSnapshot } = await import('firebase/firestore');
+      const unsub = onSnapshot(
+        doc(firestore, CATALOG_DOC_PATH),
+        (snap) => {
+          void (async () => {
+            try {
+              if (!snap.exists()) return;
+              const meta = parseMeta(snap.data());
+              const current = getShared();
+              if (!current.started || meta.dataAsOf === current.state.catalog.dataAsOf) return;
+              const { catalog } = await fetchRemoteCatalog(firestore);
+              writeFreshAt(Date.now());
+              if (getShared().started) publish({ catalog, source: 'live', meta, loading: false });
+            } catch {
+              // Keep the last good state.
+            }
+          })();
+        },
+        () => {},
+      );
+      getShared().stop = unsub;
+    } catch {
+      // One-shot data stands without live updates.
+    }
+  } catch {
+    publish({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
+  }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -103,86 +234,32 @@ export function parseMeta(raw: unknown): RemoteCatalogMeta {
 }
 
 /**
- * Live subscription to the Firestore catalog. Emits `ready` once the meta doc
- * plus all five collections have arrived, again on any later change, and
- * `error` when the remote catalog is missing, invalid, or unreachable (the
- * hook below falls back to the bundled catalog in that case).
+ * Active catalog: live Firestore data when available, bundled JSON otherwise.
+ * One shared subscription serves every mounted page (ref-counted): the first
+ * mount runs a staleness gate (one meta read + 24h local freshness stamp) and
+ * otherwise one-shot-fetches the collections once, then listens to the meta
+ * doc only. Navigating between pages reuses the shared state with zero reads.
  */
-export async function subscribeCatalog(
-  firestore: Firestore,
-  onChange: (update: CatalogUpdate) => void,
-): Promise<Unsubscribe> {
-  const { collection, doc, onSnapshot } = await import('firebase/firestore');
-  const cache: {
-    meta?: Record<string, unknown>;
-    cards?: unknown[];
-    programs?: unknown[];
-    merchants?: unknown[];
-    loyalty?: unknown[];
-    bankOffers?: unknown[];
-  } = {};
-  const have = new Set<string>();
+export function useCatalog(): CatalogState {
+  const [state, setState] = useState<CatalogState>(() => getShared().state);
 
-  const fail = (error: Error): void => onChange({ status: 'error', error });
+  useEffect(() => {
+    const current = getShared();
+    current.refs += 1;
+    current.listeners.add(setState);
+    setState(current.state);
+    void startShared();
+    return () => {
+      current.listeners.delete(setState);
+      current.refs -= 1;
+      if (current.refs <= 0) {
+        current.stop?.();
+        if (shared === current) shared = null;
+      }
+    };
+  }, []);
 
-  const tryEmit = (): void => {
-    if (have.size < 6 || cache.meta === undefined) return;
-    try {
-      const meta = parseMeta(cache.meta);
-      const catalog = assembleCatalog({
-        dataAsOf: meta.dataAsOf,
-        cards: cache.cards,
-        programs: cache.programs,
-        merchants: cache.merchants,
-        loyalty: cache.loyalty,
-        bankOffers: cache.bankOffers,
-      });
-      onChange({ status: 'ready', catalog, meta });
-    } catch (e) {
-      fail(e instanceof Error ? e : new Error(String(e)));
-    }
-  };
-
-  const watchDoc = (key: 'meta', path: string): Unsubscribe =>
-    onSnapshot(
-      doc(firestore, path),
-      (snap) => {
-        if (!snap.exists()) {
-          fail(new Error('remote catalog: missing meta doc (sync has not run yet?)'));
-          return;
-        }
-        cache.meta = snap.data();
-        have.add(key);
-        tryEmit();
-      },
-      (error) => fail(error instanceof Error ? error : new Error(String(error))),
-    );
-
-  const watchCollection = (
-    key: 'cards' | 'programs' | 'merchants' | 'loyalty' | 'bankOffers',
-    path: string,
-  ): Unsubscribe =>
-    onSnapshot(
-      collection(firestore, path),
-      (snap) => {
-        cache[key] = snap.docs.map((d) => d.data());
-        have.add(key);
-        tryEmit();
-      },
-      (error) => fail(error instanceof Error ? error : new Error(String(error))),
-    );
-
-  const unsubs = [
-    watchDoc('meta', CATALOG_DOC_PATH),
-    watchCollection('cards', `${CATALOG_DOC_PATH}/cards`),
-    watchCollection('programs', `${CATALOG_DOC_PATH}/programs`),
-    watchCollection('merchants', `${CATALOG_DOC_PATH}/merchants`),
-    watchCollection('loyalty', `${CATALOG_DOC_PATH}/loyalty`),
-    watchCollection('bankOffers', `${CATALOG_DOC_PATH}/offers`),
-  ];
-  return () => {
-    for (const unsub of unsubs) unsub();
-  };
+  return state;
 }
 
 export function buildCatalogMaps(catalog: Catalog): {
@@ -197,51 +274,6 @@ export function buildCatalogMaps(catalog: Catalog): {
     merchantsById: new Map(catalog.merchants.map((m) => [m.id, m])),
     loyaltyById: new Map(catalog.loyalty.map((l) => [l.id, l])),
   };
-}
-
-/** Active catalog: live Firestore data when available, bundled JSON otherwise. */
-export function useCatalog(): CatalogState {
-  const [state, setState] = useState<CatalogState>({
-    catalog: bundledCatalog,
-    source: 'bundled',
-    meta: null,
-    loading: true,
-  });
-
-  useEffect(() => {
-    let unsub: Unsubscribe | undefined;
-    let cancelled = false;
-    // Firestore loads in the background; the bundled catalog paints first.
-    // Every rejection path below ends loading so the UI can never stick.
-    void db
-      .then((firestore) =>
-        subscribeCatalog(firestore, (update) => {
-          if (cancelled) return;
-          if (update.status === 'ready') {
-            setState({ catalog: update.catalog, source: 'live', meta: update.meta, loading: false });
-          } else {
-            setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
-          }
-        }).then(
-          (u) => {
-            if (cancelled) u();
-            else unsub = u;
-          },
-          () => {
-            if (!cancelled) setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
-          },
-        ),
-      )
-      .catch(() => {
-        if (!cancelled) setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
-      });
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, []);
-
-  return state;
 }
 
 /** Memoized id maps for the active catalog (replaces the static seed maps). */

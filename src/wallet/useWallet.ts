@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Unsubscribe } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import type { EarnCategory } from '../data/types';
@@ -16,6 +16,8 @@ export function useWallet(): WalletSnapshot & {
   const repo = useMemo(() => new FirestoreWalletRepository(db), []);
   const [snapshot, setSnapshot] = useState<WalletSnapshot>({ cardIds: [], loyaltyUsed: [] });
   const [loading, setLoading] = useState(true);
+  // Double-taps share one in-flight write instead of racing last-writer-wins.
+  const loyaltyPending = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -60,10 +62,14 @@ export function useWallet(): WalletSnapshot & {
     },
     toggleLoyaltyUsed: (loyaltyId) => {
       if (!user) return Promise.reject(new Error('Not signed in'));
+      if (loyaltyPending.current) return loyaltyPending.current;
       const next = snapshot.loyaltyUsed.includes(loyaltyId)
         ? snapshot.loyaltyUsed.filter((id) => id !== loyaltyId)
         : [...snapshot.loyaltyUsed, loyaltyId];
-      return repo.setLoyaltyUsed(user.uid, next);
+      loyaltyPending.current = repo.setLoyaltyUsed(user.uid, next).finally(() => {
+        loyaltyPending.current = null;
+      });
+      return loyaltyPending.current;
     },
     setSpendProfile: (profile) => {
       if (!user) return Promise.reject(new Error('Not signed in'));

@@ -7,6 +7,7 @@ import { THEME_MODES, type ThemeMode } from '../theme/themes';
 import { useTheme } from '../theme/useTheme';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { FeedbackCard } from '../components/FeedbackCard';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from '../components/ui/toaster';
@@ -186,6 +187,8 @@ export function SettingsPage(): ReactElement {
           </>
         )}
       </Card>
+
+      <FeedbackCard />
     </div>
   );
 }

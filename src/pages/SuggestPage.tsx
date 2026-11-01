@@ -31,25 +31,34 @@ function SpendProfileCard({
     setDraft(Object.fromEntries(activeSpendProfile(spendProfile).map((p) => [p.category, String(p.monthlyCAD)])));
   }, [JSON.stringify(spendProfile)]);
 
-  const revert = (category: EarnCategory): void => {
-    const fallback = activeSpendProfile().find((p) => p.category === category)?.monthlyCAD ?? 0;
-    setDraft((d) => ({ ...d, [category]: String(spendProfile?.[category] ?? fallback) }));
-  };
-
-  const commit = (category: EarnCategory): void => {
-    const raw = (draft[category] ?? '').trim();
-    if (raw === '') {
-      const next = { ...(spendProfile ?? {}) };
-      delete next[category];
-      onCommit(next);
-      return;
+  // Explicit Save: one write for the whole profile, changed fields only.
+  const save = (): void => {
+    const next: Partial<Record<EarnCategory, number>> = { ...(spendProfile ?? {}) };
+    const fixed: Record<string, string> = {};
+    let changed = false;
+    for (const category of SPEND_PROFILE_CATEGORIES) {
+      const raw = (draft[category] ?? '').trim();
+      const current = spendProfile?.[category];
+      if (raw === '') {
+        if (current !== undefined) {
+          delete next[category];
+          changed = true;
+        }
+        continue;
+      }
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < 0) {
+        // Revert invalid input to the stored value.
+        fixed[category] = String(current ?? activeSpendProfile().find((p) => p.category === category)?.monthlyCAD ?? 0);
+        continue;
+      }
+      if (current !== value) {
+        next[category] = value;
+        changed = true;
+      }
     }
-    const value = Number(raw);
-    if (!Number.isFinite(value) || value < 0) {
-      revert(category);
-      return;
-    }
-    onCommit({ ...(spendProfile ?? {}), [category]: value });
+    if (Object.keys(fixed).length > 0) setDraft((d) => ({ ...d, ...fixed }));
+    if (changed) onCommit(next);
   };
 
   return (
@@ -67,14 +76,18 @@ function SpendProfileCard({
               min={0}
               value={draft[category] ?? ''}
               onChange={(e) => setDraft((d) => ({ ...d, [category]: e.target.value }))}
-              onBlur={() => commit(category)}
             />
           </div>
         ))}
       </div>
-      <Button variant="secondary" size="sm" type="button" className="mt-3" onClick={onReset}>
-        {strings.suggest.spendReset}
-      </Button>
+      <div className="mt-3 flex gap-2.5">
+        <Button size="sm" type="button" onClick={save}>
+          {strings.suggest.spendSave}
+        </Button>
+        <Button variant="secondary" size="sm" type="button" onClick={onReset}>
+          {strings.suggest.spendReset}
+        </Button>
+      </div>
     </Card>
   );
 }

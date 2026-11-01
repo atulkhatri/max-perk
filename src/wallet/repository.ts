@@ -170,24 +170,29 @@ export class FirestoreWalletRepository implements WalletRepository {
   }
 
   async mergeSnapshot(uid: string, guest: WalletSnapshot): Promise<{ addedCards: number; addedLoyalty: number }> {
-    const [{ doc, serverTimestamp, setDoc }, firestore] = await Promise.all([fx(), this.db]);
+    const [{ doc, serverTimestamp, writeBatch }, firestore] = await Promise.all([fx(), this.db]);
     const current = await this.readSnapshot(uid);
     const merged = mergeWallets(current, guest);
     const addedCards = merged.cardIds.length - current.cardIds.length;
     const addedLoyalty = merged.loyaltyUsed.length - current.loyaltyUsed.length;
     const known = new Set(current.cardIds);
-    await Promise.all(
-      merged.cardIds
-        .filter((id) => !known.has(id))
-        .map((id) => setDoc(doc(firestore, 'users', uid, 'wallet', id), { addedAt: serverTimestamp() })),
-    );
+    const batch = writeBatch(firestore);
+    let ops = 0;
+    for (const id of merged.cardIds) {
+      if (known.has(id)) continue;
+      batch.set(doc(firestore, 'users', uid, 'wallet', id), { addedAt: serverTimestamp() });
+      ops++;
+    }
     if (addedLoyalty > 0) {
-      await setDoc(doc(firestore, 'users', uid), { loyaltyUsed: merged.loyaltyUsed }, { merge: true });
+      batch.set(doc(firestore, 'users', uid), { loyaltyUsed: merged.loyaltyUsed }, { merge: true });
+      ops++;
     }
     const profile = resolveSpendProfile(current.spendProfile, guest.spendProfile);
     if (profile && !current.spendProfile) {
-      await setDoc(doc(firestore, 'users', uid), { spendProfile: profile }, { merge: true });
+      batch.set(doc(firestore, 'users', uid), { spendProfile: profile }, { merge: true });
+      ops++;
     }
+    if (ops > 0) await batch.commit();
     return { addedCards, addedLoyalty };
   }
 

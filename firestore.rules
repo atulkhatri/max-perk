@@ -1,18 +1,79 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each signed-in user reads/writes only their own wallet + preferences.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isNonAnonymous() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // Each user reads/writes only their own wallet + preferences. Field and
+    // size guards hold because client-side parsing is REST-bypassable.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['loyaltyUsed', 'spendProfile'])
+        && (!('loyaltyUsed' in request.resource.data)
+          || (request.resource.data.loyaltyUsed is list
+            && request.resource.data.loyaltyUsed.size() < 50
+            && request.resource.data.loyaltyUsed.join(',').size() < 3250))
+        && validSpendProfile();
       match /wallet/{cardId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId);
+        allow delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && cardId.matches('^[a-z0-9-]{1,64}$')
+          && request.resource.data.keys().hasOnly(['addedAt'])
+          && request.resource.data.addedAt == request.time;
       }
     }
+
+    // User feedback: clients may only file new reports (non-anonymous, so a
+    // bot farm cannot mint guest uids and flood the queue). Triage happens in
+    // the Firebase console, which bypasses these rules.
+    match /feedback/{id} {
+      allow create: if isNonAnonymous()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.kind in ['feature', 'bug', 'correction']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 10
+        && request.resource.data.text.size() <= 2000
+        && (!('contact' in request.resource.data)
+          || (request.resource.data.contact is string
+            && request.resource.data.contact.size() <= 254
+            && request.resource.data.contact.matches('.*@.*\\..*')))
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly(['kind', 'text', 'uid', 'contact', 'createdAt', 'status']);
+      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow list, update, delete: if false;
+    }
+
     // Curated catalog is bundled with the app in v1; this path reserves a
     // future server-hosted catalog (public read, no client writes).
     match /catalog/{doc=**} {
       allow read: if true;
       allow write: if false;
     }
+  }
+
+  function validSpendProfile() {
+    let data = request.resource.data;
+    return !('spendProfile' in data)
+      || (data.spendProfile is map
+        && data.spendProfile.keys().hasOnly(['grocery', 'dining', 'gas', 'travel', 'recurring', 'other'])
+        && spendNumberOk('grocery') && spendNumberOk('dining') && spendNumberOk('gas')
+        && spendNumberOk('travel') && spendNumberOk('recurring') && spendNumberOk('other'));
+  }
+
+  function spendNumberOk(key) {
+    let profile = request.resource.data.spendProfile;
+    return !(key in profile)
+      || (profile[key] is number && profile[key] >= 0 && profile[key] <= 10000000);
   }
 }

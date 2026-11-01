@@ -65,6 +65,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - Suggest a new card only when it would meaningfully beat owned cards (currently $50/year over the best owned card); show estimated incremental value.
 - Users can edit the monthly spend profile behind suggestions; fee-adjusted value (earn minus annual fee) shows as display-only small text since fees are sometimes waived; the best owned card is highlighted as the competition.
 - Users can upload bank statements (PDF/CSV, up to 24 files) for comparison against their real categorized spending; files never leave the browser and results are session-only.
+- Signed-in users can send feedback (feature request, bug, card-data correction) from Settings; reports are stored for weekly review with no public listing.
 - No in-app applications (out of scope); suggestion only.
 
 ### Reminders & bank offers
