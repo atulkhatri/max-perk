@@ -223,11 +223,11 @@ describe('store-card comparison', () => {
 
 describe('bank-offer factoring', () => {
   it('adds applicable card-specific offers to value', () => {
-    const result = rankForCheck(catalog, ['amex-cobalt'], 'pizza-hut', 100);
+    const result = rankForCheck(catalog, ['amex-cobalt'], 'air-canada', 250);
     const row = result?.ranked.find((r) => r.card.id === 'amex-cobalt');
-    expect(row?.offerValueCAD).toBe(20);
-    expect(row?.totalValueCAD).toBeCloseTo(row!.valueCAD + 20, 2);
-    expect(row?.appliedOfferIds).toEqual(['offer-delivery-20']);
+    expect(row?.offerValueCAD).toBe(30);
+    expect(row?.totalValueCAD).toBeCloseTo(row!.valueCAD + 30, 2);
+    expect(row?.appliedOfferIds).toEqual(['offer-hotel-30']);
   });
 
   it('respects offer minimum spend', () => {
@@ -300,9 +300,20 @@ describe('issuer-verified corrections (Oct 2026)', () => {
     expect(result?.ranked[0]?.points).toBe(500);
   });
 
-  it('drops rogers-red from the delivery-app credit offer', () => {
-    const result = rankForCheck(catalog, ['rogers-red'], 'pizza-hut', 100);
-    expect(result?.ranked.find((r) => r.card.id === 'rogers-red')?.offerValueCAD).toBe(0);
+  it('applies no delivery-app credit: the unverified $20 offer was removed', () => {
+    const result = rankForCheck(catalog, ['amex-cobalt'], 'pizza-hut', 100);
+    const row = result?.ranked.find((r) => r.card.id === 'amex-cobalt');
+    expect(row?.offerValueCAD).toBe(0);
+    expect(row?.appliedOfferIds).toEqual([]);
+  });
+
+  it('breaks equal-value ties by preferring the lower annual fee', () => {
+    const pricey = fixtureCard({ id: 'tie-pricey', annualFeeCAD: 120, earn: { other: 1 } });
+    const free = fixtureCard({ id: 'tie-free', annualFeeCAD: 0, earn: { other: 1 } });
+    const merchant: MerchantSeed = { ...fixtureMerchant, id: 'tie-store', name: 'Tie Store', earn: 'other' };
+    const tieCatalog = fixtureCatalog([pricey, free], merchant);
+    const result = rankForPurchase(tieCatalog, ['tie-pricey', 'tie-free'], merchant, 100);
+    expect(result.ranked.map((r) => r.card.id)).toEqual(['tie-free', 'tie-pricey']);
   });
 
   it('applies no blanket grocery offer to every card (no official source)', () => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { Unsubscribe } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { db } from '../firebase';
 import { FirestoreWalletRepository, type WalletSnapshot } from './repository';
@@ -21,11 +22,27 @@ export function useWallet(): WalletSnapshot & {
       return;
     }
     setLoading(true);
-    const unsub = repo.subscribe(user.uid, (next) => {
-      setSnapshot(next);
-      setLoading(false);
-    });
-    return unsub;
+    let unsub: Unsubscribe | undefined;
+    let cancelled = false;
+    void repo
+      .subscribe(user.uid, (next) => {
+        if (cancelled) return;
+        setSnapshot(next);
+        setLoading(false);
+      })
+      .then((u) => {
+        if (cancelled) u();
+        else unsub = u;
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSnapshot({ cardIds: [], loyaltyUsed: [] });
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, [repo, user]);
 
   return {

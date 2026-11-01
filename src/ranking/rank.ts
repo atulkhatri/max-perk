@@ -234,7 +234,11 @@ export function rankForPurchase(
     if (mode === 'coverage' && b.coverageScore !== a.coverageScore) {
       return b.coverageScore - a.coverageScore;
     }
-    return b.totalValueCAD - a.totalValueCAD;
+    if (b.totalValueCAD !== a.totalValueCAD) {
+      return b.totalValueCAD - a.totalValueCAD;
+    }
+    // Equal value: the cheaper card to hold wins.
+    return a.card.annualFeeCAD - b.card.annualFeeCAD;
   });
 
   const assumptions: Assumption[] = [];
@@ -249,7 +253,7 @@ export function rankForPurchase(
   if (!spendEntered) {
     assumptions.push({ text: `No amount entered, so values are for a $${REFERENCE_SPEND} example purchase.` });
   }
-  assumptions.push({ text: 'Point values use typical best redemptions; see Settings for details.' });
+  assumptions.push({ text: 'Point values use typical best redemptions.' });
   if (ranked.some((r) => r.appliedOfferLabels.length > 0)) {
     assumptions.push({ text: "Offers shown are examples; check they're activated before you count on them." });
   }

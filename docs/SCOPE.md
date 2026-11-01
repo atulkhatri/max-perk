@@ -44,7 +44,7 @@ trip-tracking in v1.
 
 ## 6. Bank offers tracked in v1 and sourcing
 
-A defined set of four representative offers, hand-curated as illustrative
+A defined set of two representative offers, hand-curated as illustrative
 sample data (`src/data/seeds/offers.ts`). Each has a minimum spend and a
 card scope; applicable offers are added to card values with a stated
 assumption. Presented as a curated sample, never as a live feed.

@@ -32,7 +32,7 @@ export function App(): ReactElement {
     <AuthProvider>
       <AppShell>
         <AuthGate>
-          <Suspense fallback={<p className="muted">{strings.common.loading}</p>}>
+          <Suspense fallback={<p className="text-sm text-muted-foreground">{strings.common.loading}</p>}>
             <RoutedPage />
           </Suspense>
         </AuthGate>

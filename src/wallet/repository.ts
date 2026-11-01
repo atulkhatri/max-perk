@@ -2,17 +2,11 @@
 // isolated in one module. Layout:
 //   users/{uid}            { loyaltyUsed: string[] }
 //   users/{uid}/wallet/{cardId}  { addedAt }
+//
+// Firestore itself is imported dynamically (see fx()) so the SDK loads only
+// when the wallet is actually used, never as part of first paint.
 
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  type Firestore,
-  type Unsubscribe,
-} from 'firebase/firestore';
+import type { Firestore, Unsubscribe } from 'firebase/firestore';
 
 export interface WalletSnapshot {
   cardIds: string[];
@@ -20,34 +14,64 @@ export interface WalletSnapshot {
 }
 
 export interface WalletRepository {
-  subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Unsubscribe;
+  subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Promise<Unsubscribe>;
   addCard(uid: string, cardId: string): Promise<void>;
   removeCard(uid: string, cardId: string): Promise<void>;
   setLoyaltyUsed(uid: string, loyaltyIds: string[]): Promise<void>;
 }
 
-export class FirestoreWalletRepository implements WalletRepository {
-  private readonly db: Firestore;
+let fxCache: Promise<typeof import('firebase/firestore')> | null = null;
 
-  constructor(db: Firestore) {
+function fx(): Promise<typeof import('firebase/firestore')> {
+  if (!fxCache) fxCache = import('firebase/firestore');
+  return fxCache;
+}
+
+export class FirestoreWalletRepository implements WalletRepository {
+  private readonly db: Promise<Firestore>;
+
+  constructor(db: Promise<Firestore>) {
     this.db = db;
   }
 
-  subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Unsubscribe {
+  async subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Promise<Unsubscribe> {
+    const [{ collection, doc, onSnapshot }, firestore] = await Promise.all([fx(), this.db]);
     let cardIds: string[] = [];
     let loyaltyUsed: string[] = [];
-    const emit = (): void => onChange({ cardIds: [...cardIds], loyaltyUsed: [...loyaltyUsed] });
+    let gotUser = false;
+    let gotWallet = false;
+    // Emit only once both reads have answered so the UI never flashes (or
+    // sticks on) an empty wallet from a single partial snapshot.
+    const emit = (): void => {
+      if (gotUser && gotWallet) onChange({ cardIds: [...cardIds], loyaltyUsed: [...loyaltyUsed] });
+    };
 
-    const userRef = doc(this.db, 'users', uid);
-    const unsubUser = onSnapshot(userRef, (snap) => {
-      const data = snap.data() as { loyaltyUsed?: string[] } | undefined;
-      loyaltyUsed = Array.isArray(data?.loyaltyUsed) ? data.loyaltyUsed : [];
-      emit();
-    });
-    const unsubWallet = onSnapshot(collection(this.db, 'users', uid, 'wallet'), (snap) => {
-      cardIds = snap.docs.map((d) => d.id);
-      emit();
-    });
+    const userRef = doc(firestore, 'users', uid);
+    const unsubUser = onSnapshot(
+      userRef,
+      (snap) => {
+        const data = snap.data() as { loyaltyUsed?: string[] } | undefined;
+        loyaltyUsed = Array.isArray(data?.loyaltyUsed) ? data.loyaltyUsed : [];
+        gotUser = true;
+        emit();
+      },
+      () => {
+        gotUser = true;
+        emit();
+      },
+    );
+    const unsubWallet = onSnapshot(
+      collection(firestore, 'users', uid, 'wallet'),
+      (snap) => {
+        cardIds = snap.docs.map((d) => d.id);
+        gotWallet = true;
+        emit();
+      },
+      () => {
+        gotWallet = true;
+        emit();
+      },
+    );
     return () => {
       unsubUser();
       unsubWallet();
@@ -55,14 +79,17 @@ export class FirestoreWalletRepository implements WalletRepository {
   }
 
   async addCard(uid: string, cardId: string): Promise<void> {
-    await setDoc(doc(this.db, 'users', uid, 'wallet', cardId), { addedAt: serverTimestamp() });
+    const [{ doc, serverTimestamp, setDoc }, firestore] = await Promise.all([fx(), this.db]);
+    await setDoc(doc(firestore, 'users', uid, 'wallet', cardId), { addedAt: serverTimestamp() });
   }
 
   async removeCard(uid: string, cardId: string): Promise<void> {
-    await deleteDoc(doc(this.db, 'users', uid, 'wallet', cardId));
+    const [{ deleteDoc, doc }, firestore] = await Promise.all([fx(), this.db]);
+    await deleteDoc(doc(firestore, 'users', uid, 'wallet', cardId));
   }
 
   async setLoyaltyUsed(uid: string, loyaltyIds: string[]): Promise<void> {
-    await setDoc(doc(this.db, 'users', uid), { loyaltyUsed: loyaltyIds }, { merge: true });
+    const [{ doc, setDoc }, firestore] = await Promise.all([fx(), this.db]);
+    await setDoc(doc(firestore, 'users', uid), { loyaltyUsed: loyaltyIds }, { merge: true });
   }
 }

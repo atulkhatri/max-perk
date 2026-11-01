@@ -10,7 +10,7 @@ const KEY = 'fake-api-key';
 
 const EMAIL = process.argv[2] ?? 'tester@example.com';
 const PASSWORD = process.argv[3] ?? 'tester-1234';
-const WALLET = ['amex-cobalt', 'pc-financial', 'triangle'];
+const WALLET = ['amex-cobalt', 'scotia-momentum', 'tangerine', 'pc-financial', 'triangle'];
 
 async function postJson(url, body, headers = {}) {
   const res = await fetch(url, {

@@ -2,13 +2,7 @@
 // the offline/error fallback. Reads are public (see firestore.rules), so no
 // sign-in is needed; writes happen only through scripts/sync-catalog-*.mjs.
 
-import {
-  collection,
-  doc,
-  onSnapshot,
-  type Firestore,
-  type Unsubscribe,
-} from 'firebase/firestore';
+import type { Firestore, Unsubscribe } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../firebase';
 import { catalog as bundledCatalog, validateCatalog } from './seeds/catalog';
@@ -114,10 +108,11 @@ export function parseMeta(raw: unknown): RemoteCatalogMeta {
  * `error` when the remote catalog is missing, invalid, or unreachable (the
  * hook below falls back to the bundled catalog in that case).
  */
-export function subscribeCatalog(
+export async function subscribeCatalog(
   firestore: Firestore,
   onChange: (update: CatalogUpdate) => void,
-): Unsubscribe {
+): Promise<Unsubscribe> {
+  const { collection, doc, onSnapshot } = await import('firebase/firestore');
   const cache: {
     meta?: Record<string, unknown>;
     cards?: unknown[];
@@ -214,14 +209,36 @@ export function useCatalog(): CatalogState {
   });
 
   useEffect(() => {
-    const unsub = subscribeCatalog(db, (update) => {
-      if (update.status === 'ready') {
-        setState({ catalog: update.catalog, source: 'live', meta: update.meta, loading: false });
-      } else {
-        setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
-      }
-    });
-    return unsub;
+    let unsub: Unsubscribe | undefined;
+    let cancelled = false;
+    // Firestore loads in the background; the bundled catalog paints first.
+    // Every rejection path below ends loading so the UI can never stick.
+    void db
+      .then((firestore) =>
+        subscribeCatalog(firestore, (update) => {
+          if (cancelled) return;
+          if (update.status === 'ready') {
+            setState({ catalog: update.catalog, source: 'live', meta: update.meta, loading: false });
+          } else {
+            setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
+          }
+        }).then(
+          (u) => {
+            if (cancelled) u();
+            else unsub = u;
+          },
+          () => {
+            if (!cancelled) setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
+          },
+        ),
+      )
+      .catch(() => {
+        if (!cancelled) setState({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
+      });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, []);
 
   return state;

@@ -86,7 +86,8 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - Markets outside Canada; native mobile apps (v1 is a responsive web app; full native may follow later).
 
 ## Assumptions
-- v1 is a responsive web app with a mobile-first layout that looks and feels like a native app when added as a home-screen shortcut.
+- v1 is a responsive web app: a desktop layout with a sidebar and multi-column content on large screens, collapsing to a mobile layout with a bottom tab bar, and installable as a home-screen shortcut.
+- Appearance: light/dark/system mode for users (no accent picker); all theme parameters live in one admin-edited token file (`src/index.css`). UI uses shadcn-style components with Tailwind CSS.
 - Rewards data is curated and refreshed on a defined cadence (cadence to be set in the tech plan).
 - Point valuations use published, reviewable estimates; methodology is visible to the user.
 - Benefit guidance is based on summarized issuer terms; the app points users to full terms for confirmation.

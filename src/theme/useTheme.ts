@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { applyTheme, loadTheme, type AccentId, type ThemeChoice, type ThemeMode } from './themes';
+import { applyTheme, loadTheme, type ThemeChoice, type ThemeMode } from './themes';
 
 export function useTheme(): ThemeChoice & {
   setMode: (mode: ThemeMode) => void;
-  setAccent: (accent: AccentId) => void;
 } {
   const [choice, setChoice] = useState<ThemeChoice>(loadTheme);
 
@@ -19,8 +18,7 @@ export function useTheme(): ThemeChoice & {
     return () => query.removeEventListener('change', onChange);
   }, [choice]);
 
-  const setMode = useCallback((mode: ThemeMode) => setChoice((c) => ({ ...c, mode })), []);
-  const setAccent = useCallback((accent: AccentId) => setChoice((c) => ({ ...c, accent })), []);
+  const setMode = useCallback((mode: ThemeMode) => setChoice({ mode }), []);
 
-  return { ...choice, setMode, setAccent };
+  return { ...choice, setMode };
 }

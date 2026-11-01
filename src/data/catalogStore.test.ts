@@ -44,6 +44,13 @@ describe('parseMeta', () => {
   });
 });
 
+describe('removed invalid data stays removed', () => {
+  it('contains no $20 delivery-app credit offer (no issuer page confirms it)', () => {
+    expect(bundled.bankOffers.some((o) => o.id === 'offer-delivery-20')).toBe(false);
+    expect(bundled.bankOffers.some((o) => o.label === '$20 delivery-app credit')).toBe(false);
+  });
+});
+
 describe('buildCatalogMaps', () => {
   it('indexes every collection by id', () => {
     const maps = buildCatalogMaps(bundled);

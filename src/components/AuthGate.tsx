@@ -1,6 +1,9 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { strings } from '../strings';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 function errorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
@@ -16,7 +19,7 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (loading) return <p className="muted">{strings.common.loading}</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
   if (user) return <>{children}</>;
 
   const submitEmail = async (event: React.FormEvent): Promise<void> => {
@@ -46,13 +49,15 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
   };
 
   return (
-    <div className="stack">
-      <h1 className="page-title">{mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}</h1>
-      <p className="page-subtitle">{strings.auth.subtitle}</p>
-      <form className="stack" onSubmit={(e) => void submitEmail(e)}>
-        <div className="field">
-          <label htmlFor="auth-email">{strings.auth.emailLabel}</label>
-          <input
+    <div className="flex flex-col gap-3.5">
+      <h1 className="font-display text-[32px] leading-[1.1] font-bold tracking-tight">
+        {mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}
+      </h1>
+      <p className="text-sm text-muted-foreground">{strings.auth.subtitle}</p>
+      <form className="flex flex-col gap-3.5" onSubmit={(e) => void submitEmail(e)}>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="auth-email">{strings.auth.emailLabel}</Label>
+          <Input
             id="auth-email"
             type="email"
             autoComplete="email"
@@ -61,9 +66,9 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div className="field">
-          <label htmlFor="auth-password">{strings.auth.passwordLabel}</label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="auth-password">{strings.auth.passwordLabel}</Label>
+          <Input
             id="auth-password"
             type="password"
             autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
@@ -73,24 +78,25 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="error-text">{error}</p>}
-        <button className="btn" type="submit" disabled={busy}>
+        {error && <p className="text-[13px] text-destructive">{error}</p>}
+        <Button type="submit" disabled={busy}>
           {mode === 'in' ? strings.auth.signIn : strings.auth.signUp}
-        </button>
+        </Button>
       </form>
-      <button className="btn secondary" type="button" disabled={busy} onClick={() => void submitGoogle()}>
+      <Button variant="secondary" type="button" disabled={busy} onClick={() => void submitGoogle()}>
         {strings.auth.google}
-      </button>
-      <button
-        className="link-btn"
+      </Button>
+      <Button
+        variant="link"
         type="button"
+        className="self-start px-0"
         onClick={() => {
           setMode(mode === 'in' ? 'up' : 'in');
           setError(null);
         }}
       >
         {mode === 'in' ? strings.auth.needAccount : strings.auth.haveAccount}
-      </button>
+      </Button>
     </div>
   );
 }

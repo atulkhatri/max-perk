@@ -1,10 +1,16 @@
 /// <reference types="vitest/config" />
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: { port: 5173, host: '127.0.0.1' },
+  optimizeDeps: {
+    // Pre-bundle at server start so the first page hit never pays the
+    // multi-megabyte Firebase transform cost inside the request.
+    include: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+  },
   preview: { port: 4173, host: '127.0.0.1' },
   build: {
     rolldownOptions: {

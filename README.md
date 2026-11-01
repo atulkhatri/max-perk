@@ -73,7 +73,7 @@ After enabling providers, deploy rules with
 - `src/theme/` — light/dark/system modes + accent colours, persisted per browser.
 - `data/` — curated catalog source of truth (`catalog.curated.json`: 96 cards
   across personal + business segments, 30 programs, 26 merchants, 2 loyalty
-  programs, 4 illustrative offers), official issuer URL registry (96 sources),
+  programs, 2 illustrative offers), official issuer URL registry (96 sources),
   and weekly page snapshots. See `data/README.md`.
 - `src/data/seeds/` — typed wrappers over the curated JSON (bundled fallback);
   `src/data/catalogStore.ts` subscribes to the live Firestore catalog.

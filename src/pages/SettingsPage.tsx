@@ -1,13 +1,22 @@
 import type { ReactElement } from 'react';
+import { Moon, Sun, SunMoon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useCatalog } from '../data/catalogStore';
 import { strings } from '../strings';
-import { ACCENTS, THEME_MODES } from '../theme/themes';
+import { THEME_MODES, type ThemeMode } from '../theme/themes';
 import { useTheme } from '../theme/useTheme';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+
+const MODE_ICONS: Record<ThemeMode, () => ReactElement> = {
+  light: () => <Sun />,
+  dark: () => <Moon />,
+  system: () => <SunMoon />,
+};
 
 export function SettingsPage(): ReactElement {
   const { user, signOutUser } = useAuth();
-  const { mode, accent, setMode, setAccent } = useTheme();
+  const { mode, setMode } = useTheme();
   const { catalog } = useCatalog();
   const lastRefresh = new Date(`${catalog.dataAsOf}T00:00:00`).toLocaleDateString('en-CA', {
     year: 'numeric',
@@ -16,62 +25,58 @@ export function SettingsPage(): ReactElement {
   });
 
   return (
-    <div className="stack">
-      <h1 className="page-title">{strings.settings.title}</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="font-display mt-0.5 text-[32px] leading-[1.1] font-bold tracking-tight">
+        {strings.settings.title}
+      </h1>
 
-      <div className="card">
-        <h2 className="section-title" style={{ marginTop: 0 }}>{strings.settings.appearance}</h2>
-        <div className="field" style={{ marginTop: 12 }}>
-          <label>{strings.settings.themeMode}</label>
-          <div className="segmented" role="group" aria-label={strings.settings.themeMode}>
-            {THEME_MODES.map((m) => (
-              <button
-                key={m}
-                className="btn secondary small"
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => setMode(m)}
-              >
-                {strings.settings.modes[m]}
-              </button>
-            ))}
+      <Card className="p-[18px]">
+        <h2 className="text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
+          {strings.settings.appearance}
+        </h2>
+        <div className="mt-3 flex flex-col gap-1.5">
+          <span className="text-[13px] font-semibold">{strings.settings.themeMode}</span>
+          <div className="flex gap-1 rounded-md border border-border bg-muted p-1" role="group" aria-label={strings.settings.themeMode}>
+            {THEME_MODES.map((m) => {
+              const Icon = MODE_ICONS[m];
+              return (
+                <Button
+                  key={m}
+                  variant={mode === m ? 'default' : 'ghost'}
+                  size="sm"
+                  type="button"
+                  aria-pressed={mode === m}
+                  onClick={() => setMode(m)}
+                  className="flex-1"
+                >
+                  <Icon />
+                  {strings.settings.modes[m]}
+                </Button>
+              );
+            })}
           </div>
         </div>
-        <div className="field" style={{ marginTop: 12 }}>
-          <label>{strings.settings.themeAccent}</label>
-          <div className="swatch-row" role="group" aria-label={strings.settings.themeAccent}>
-            {ACCENTS.map((a) => (
-              <button
-                key={a.id}
-                className={`swatch ${a.id}`}
-                type="button"
-                title={a.label}
-                aria-label={a.label}
-                aria-pressed={accent === a.id}
-                onClick={() => setAccent(a.id)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      </Card>
 
-      <div className="card">
-        <p className="muted" style={{ marginBottom: 0 }}>
+      <Card className="p-[18px]">
+        <p className="mb-0 text-[13px] text-muted-foreground">
           {strings.settings.lastRefresh} {lastRefresh}.
         </p>
-      </div>
+      </Card>
 
-      <div className="card">
-        <h2 className="section-title" style={{ marginTop: 0 }}>{strings.settings.account}</h2>
+      <Card className="p-[18px]">
+        <h2 className="text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
+          {strings.settings.account}
+        </h2>
         {user?.email && (
-          <p className="muted">
+          <p className="mt-2 text-[13px] text-muted-foreground">
             {strings.auth.signedInAs} {user.email}
           </p>
         )}
-        <button className="btn secondary" type="button" onClick={() => void signOutUser()}>
+        <Button variant="secondary" type="button" className="mt-3 w-full" onClick={() => void signOutUser()}>
           {strings.auth.signOut}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

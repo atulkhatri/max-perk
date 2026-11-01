@@ -1,6 +1,8 @@
 import { useId, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { MerchantSeed } from '../data/types';
 import { strings } from '../strings';
+import { cn } from '../lib/utils';
+import { Input } from './ui/input';
 
 const MAX_SUGGESTIONS = 8;
 
@@ -56,8 +58,8 @@ export function StoreCombobox({
   };
 
   return (
-    <div className="combo">
-      <input
+    <div className="relative">
+      <Input
         ref={inputRef}
         id={id}
         type="text"
@@ -91,9 +93,13 @@ export function StoreCombobox({
         }}
       />
       {showList && (
-        <ul className="combo-list" role="listbox" id={listId}>
+        <ul
+          role="listbox"
+          id={listId}
+          className="absolute top-[calc(100%+4px)] right-0 left-0 z-20 m-0 max-h-[248px] list-none overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        >
           {matches.length === 0 ? (
-            <li className="combo-empty">{strings.check.noStoreMatches}</li>
+            <li className="px-2.5 py-2 text-[13px] text-muted-foreground">{strings.check.noStoreMatches}</li>
           ) : (
             matches.map((merchant, index) => (
               <li
@@ -101,13 +107,16 @@ export function StoreCombobox({
                 id={`${listId}-opt-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
-                className="combo-option"
+                className={cn(
+                  'flex cursor-pointer items-baseline justify-between gap-3 rounded-sm px-2.5 py-2 text-sm',
+                  index === activeIndex && 'bg-accent text-accent-foreground',
+                )}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => pick(merchant)}
                 onMouseEnter={() => setActiveIndex(index)}
               >
                 <span>{merchant.name}</span>
-                <span className="sub">
+                <span className="text-xs whitespace-nowrap text-muted-foreground">
                   {merchant.context !== 'general'
                     ? strings.categories[merchant.context]
                     : strings.categories[merchant.earn]}
