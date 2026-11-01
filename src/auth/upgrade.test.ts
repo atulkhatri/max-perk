@@ -29,6 +29,7 @@ function fakeRepo(initial: Record<string, WalletSnapshot>): WalletRepository & {
     async addCard(): Promise<void> {},
     async removeCard(): Promise<void> {},
     async setLoyaltyUsed(): Promise<void> {},
+    async setSpendProfile(): Promise<void> {},
     async readSnapshot(uid: string): Promise<WalletSnapshot> {
       if (uid !== repo.authedUid) throw denied(uid);
       const snap = store.get(uid);

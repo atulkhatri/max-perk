@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-export type Route = 'check' | 'wallet' | 'suggest' | 'settings';
+export type Route = 'check' | 'wallet' | 'suggest' | 'statements' | 'settings';
 
-const ROUTES: Route[] = ['check', 'wallet', 'suggest', 'settings'];
+const ROUTES: Route[] = ['check', 'wallet', 'suggest', 'statements', 'settings'];
 
 function routeFromHash(): Route {
   const hash = window.location.hash.replace(/^#\/?/, '').split('?')[0] as Route;

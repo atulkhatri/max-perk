@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog, validateCatalog } from '../data/seeds/catalog';
 import type { CardSeed, Catalog, MerchantSeed, ProgramSeed } from '../data/types';
-import { annualValue, programCpp, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestNewCards } from './rank';
+import { annualValue, programCpp, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestFromStatements, suggestNewCards, transactionCoverageMonths, valueOfTransactions } from './rank';
 
 function fixtureCard(overrides: Partial<CardSeed> & { id: string }): CardSeed {
   return {
@@ -286,6 +286,67 @@ describe('new-card suggester', () => {
     const groceryOnly = [{ category: 'grocery' as const, monthlyCAD: 600 }];
     // $7,200/yr grocery vs $6,000 annualized cap: 6000×5 + 1200×1 = 31,200 pts = $312
     expect(annualValue(catalog, bmo!, groceryOnly)).toBeCloseTo(312, 0);
+  });
+
+  it('values real transactions with monthly caps', () => {
+    const cat = fixtureCatalog([
+      fixtureCard({ id: 'owned-flat', earn: { other: 1 } }),
+      fixtureCard({
+        id: 'capped',
+        earn: { other: 2 },
+        caps: [{ categories: ['other'], period: 'month', limitCAD: 40, rateAfter: 0 }],
+      }),
+    ]);
+    const txns = [{ date: '2026-09-05', amountCAD: 100, category: 'other' as const }];
+    // Flat: 100 pts in one month, annualized ×12 at 1cpp = $12.
+    expect(valueOfTransactions(cat, cat.cards[0], txns)).toBeCloseTo(12, 5);
+    // Capped: 40×2 + 60×0 = 80 pts → $9.60.
+    expect(valueOfTransactions(cat, cat.cards[1], txns)).toBeCloseTo(9.6, 5);
+    expect(valueOfTransactions(cat, cat.cards[0], [])).toBe(0);
+  });
+
+  it('compares an owned card against candidates on its own transactions', () => {
+    const cat = fixtureCatalog([
+      fixtureCard({ id: 'owned-flat', earn: { other: 1 } }),
+      fixtureCard({ id: 'dining-star', earn: { dining: 5 } }),
+    ]);
+    const groups = [
+      { cardId: 'owned-flat', transactions: [{ date: '2026-09-05', amountCAD: 500, category: 'dining' as const }] },
+    ];
+    const out = suggestFromStatements(cat, ['owned-flat'], groups);
+    expect(out).toHaveLength(1);
+    expect(out[0].card.id).toBe('dining-star');
+    expect(out[0].forCardId).toBe('owned-flat');
+    // Owned earns 500×1, challenger 500×5, annualized: (2000×12)/100 = $240.
+    expect(out[0].incrementalCAD).toBeCloseTo(240, 5);
+  });
+
+  it('counts coverage months across transactions', () => {
+    expect(
+      transactionCoverageMonths([
+        { date: '2026-09-05', amountCAD: 1, category: 'other' },
+        { date: '2026-10-05', amountCAD: 1, category: 'other' },
+      ]),
+    ).toBe(2);
+    expect(transactionCoverageMonths([])).toBe(1);
+  });
+
+  it('re-ranks with a custom spend profile', () => {
+    const cat = fixtureCatalog([
+      fixtureCard({ id: 'owned-flat', earn: { other: 1 } }),
+      fixtureCard({ id: 'dining-star', earn: { dining: 5 } }),
+    ]);
+    const boosted = suggestNewCards(cat, ['owned-flat'], 50, { dining: 1000 });
+    expect(boosted.some((s) => s.card.id === 'dining-star')).toBe(true);
+    const starved = suggestNewCards(cat, ['owned-flat'], 50, {
+      grocery: 0,
+      dining: 0,
+      gas: 0,
+      travel: 0,
+      recurring: 0,
+      other: 0,
+    });
+    expect(starved).toEqual([]);
   });
 });
 

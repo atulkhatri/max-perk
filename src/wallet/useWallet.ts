@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Unsubscribe } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
+import type { EarnCategory } from '../data/types';
 import { db } from '../firebase';
 import { FirestoreWalletRepository, type WalletSnapshot } from './repository';
 
@@ -9,6 +10,7 @@ export function useWallet(): WalletSnapshot & {
   addCard: (cardId: string) => Promise<void>;
   removeCard: (cardId: string) => Promise<void>;
   toggleLoyaltyUsed: (loyaltyId: string) => Promise<void>;
+  setSpendProfile: (profile: Partial<Record<EarnCategory, number>> | undefined) => Promise<void>;
 } {
   const { user } = useAuth();
   const repo = useMemo(() => new FirestoreWalletRepository(db), []);
@@ -62,6 +64,10 @@ export function useWallet(): WalletSnapshot & {
         ? snapshot.loyaltyUsed.filter((id) => id !== loyaltyId)
         : [...snapshot.loyaltyUsed, loyaltyId];
       return repo.setLoyaltyUsed(user.uid, next);
+    },
+    setSpendProfile: (profile) => {
+      if (!user) return Promise.reject(new Error('Not signed in'));
+      return repo.setSpendProfile(user.uid, profile);
     },
   };
 }

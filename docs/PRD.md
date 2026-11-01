@@ -5,7 +5,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ## Target users
 - Canadian consumers who own 2+ credit cards and shop across grocery, dining, gas, and everyday retail.
-- Users sign up for an account; the card wallet is stored online and syncs across devices.
+- Users start instantly as guests (anonymous accounts) and optionally sign up; the card wallet is stored online and syncs across devices, with guest wallets merged on upgrade.
 
 ## Success criteria (v1)
 - A user can get a best-card answer for a store + category in under 30 seconds.
@@ -30,7 +30,8 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ## Functional requirements
 ### Accounts
-- Sign up and sign in (Firebase Authentication, per decision).
+- Sign up and sign in (Firebase Authentication, per decision), plus password reset by email.
+- Anonymous guest sessions with no sign-in wall; upgrading links in place for new credentials or union-merges the guest wallet into an existing account. Settings discloses browser-local guest limits.
 - Card wallet stored online and synced across a user's devices.
 
 ### Card wallet
@@ -61,7 +62,9 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ### New-card recommender
 - Compare owned cards against notable unowned Canadian cards for the user's categories and spend.
-- Suggest a new card only when it would meaningfully beat owned cards; show estimated incremental value.
+- Suggest a new card only when it would meaningfully beat owned cards (currently $50/year over the best owned card); show estimated incremental value.
+- Users can edit the monthly spend profile behind suggestions; fee-adjusted value (earn minus annual fee) shows as display-only small text since fees are sometimes waived; the best owned card is highlighted as the competition.
+- Users can upload bank statements (PDF/CSV, up to 24 files) for comparison against their real categorized spending; files never leave the browser and results are session-only.
 - No in-app applications (out of scope); suggestion only.
 
 ### Reminders & bank offers
@@ -77,7 +80,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ## Out of scope (v1)
 - Automatic card import via bank connections; card applications or approvals.
-- Purchase history tracking, budgeting, or credit-score features.
+- Purchase history tracking, budgeting, or credit-score features (statement upload is local-only analysis, never stored or synced).
 - Real-time merchant offer feeds (v1 tracks a defined set of card-linked bank offers instead).
 - Warranty/insurance claim filing or tracking; the app recommends cards, it does not manage claims.
 - Offline mode; v1 assumes connectivity.
@@ -99,10 +102,10 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - Canonical v1 store + category list: which merchants and categories must be covered at launch?
 - Point valuation source and refresh cadence: single estimate per program or a range?
 - Benefit data depth for v1: which perks (extended warranty, rental insurance, hotel/travel coverage) and how much of the fine print must the app summarize?
-- New-card recommender: which cards are eligible, and what "meaningfully beats" threshold triggers a suggestion?
+- New-card recommender: which cards are eligible, and what "meaningfully beats" threshold triggers a suggestion? (Decided: unowned credit cards in owned segments; $50/year over the best owned card.)
 - Reminders: how are they triggered (user-entered trip/purchase vs. automatic), and through which channels?
 - Bank offers: which offers are tracked in v1 and how is that data sourced and refreshed?
-- Should annual fees factor into recommendations (e.g., net-value view) in v1 or later?
+- Should annual fees factor into recommendations (e.g., net-value view) in v1 or later? (Decided: display-only fee-adjusted line; ranking math unchanged since fees are sometimes waived.)
 - Signup guidance depth: link-out only, or in-app steps for major loyalty programs?
 
 ## Review & acceptance

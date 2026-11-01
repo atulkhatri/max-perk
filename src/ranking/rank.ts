@@ -303,25 +303,147 @@ export function annualValue(
   return (totalPoints * cpp) / 100;
 }
 
+/** Fill a partial monthly-spend profile with defaults for untouched categories. */
+export function activeSpendProfile(
+  spend?: Partial<Record<EarnCategory, number>>,
+): { category: EarnCategory; monthlyCAD: number }[] {
+  return DEFAULT_SPEND_PROFILE.map((p) => ({
+    category: p.category,
+    monthlyCAD: spend?.[p.category] ?? p.monthlyCAD,
+  }));
+}
+
 export function suggestNewCards(
   catalog: Catalog,
   ownedCardIds: string[],
   thresholdCAD: number = SUGGEST_THRESHOLD_CAD,
+  spendProfile?: Partial<Record<EarnCategory, number>>,
 ): Suggestion[] {
   const owned = catalog.cards.filter((c) => ownedCardIds.includes(c.id));
   if (owned.length === 0) return [];
   const ownedSegments = new Set(owned.map((c) => c.segment));
-  const bestOwnedAnnualCAD = Math.max(...owned.map((c) => annualValue(catalog, c)));
+  const profile = activeSpendProfile(spendProfile);
+  const bestOwnedAnnualCAD = Math.max(...owned.map((c) => annualValue(catalog, c, profile)));
   return catalog.cards
     .filter((c) => !ownedCardIds.includes(c.id))
     // Debit cards earn nothing to suggest; business cards only make sense for
     // owners who already hold that segment.
     .filter((c) => c.kind === 'credit' && ownedSegments.has(c.segment))
     .map((card) => {
-      const annualValueCAD = annualValue(catalog, card);
+      const annualValueCAD = annualValue(catalog, card, profile);
       return { card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD: annualValueCAD - bestOwnedAnnualCAD };
     })
     .filter((s) => s.incrementalCAD >= thresholdCAD)
     .sort((a, b) => b.incrementalCAD - a.incrementalCAD)
     .slice(0, 3);
+}
+
+export interface StatementTransaction {
+  /** ISO date YYYY-MM-DD. */
+  date: string;
+  /** Signed dollars; refunds reduce category spend. */
+  amountCAD: number;
+  category: EarnCategory;
+  merchantId?: string;
+}
+
+/** Whole calendar months spanned by the transactions (min 1). */
+export function transactionCoverageMonths(txns: StatementTransaction[]): number {
+  return Math.max(1, new Set(txns.map((t) => t.date.slice(0, 7))).size);
+}
+
+/**
+ * Annualized dollar value one card would earn on real transactions.
+ * Monthly caps apply per calendar month; yearly caps scale to the coverage
+ * window; merchant-rate overrides bypass caps. Refunds net within their
+ * month (floored at zero). Fuel-per-litre earn cannot apply to dollar
+ * amounts, matching annualValue.
+ */
+export function valueOfTransactions(catalog: Catalog, card: CardSeed, txns: StatementTransaction[]): number {
+  if (txns.length === 0) return 0;
+  const cpp = programCpp(catalog, card);
+  const rate = (category: EarnCategory): number => card.earn[category] ?? card.earn.other ?? 0;
+  const monthly = new Map<string, Map<EarnCategory, number>>();
+  const totals = new Map<EarnCategory, number>();
+  let overridePoints = 0;
+  let minDay = Number.POSITIVE_INFINITY;
+  let maxDay = Number.NEGATIVE_INFINITY;
+  for (const t of txns) {
+    const day = Date.parse(`${t.date}T00:00:00Z`);
+    if (Number.isFinite(day)) {
+      minDay = Math.min(minDay, day);
+      maxDay = Math.max(maxDay, day);
+    }
+    const override = t.merchantId ? card.merchantRates?.[t.merchantId] : undefined;
+    if (override !== undefined) {
+      overridePoints += t.amountCAD * override;
+      continue;
+    }
+    const key = t.date.slice(0, 7);
+    const bucket = monthly.get(key) ?? new Map<EarnCategory, number>();
+    bucket.set(t.category, (bucket.get(t.category) ?? 0) + t.amountCAD);
+    monthly.set(key, bucket);
+    totals.set(t.category, (totals.get(t.category) ?? 0) + t.amountCAD);
+  }
+  const months = Math.max(1, monthly.size);
+  const days = Number.isFinite(minDay) ? Math.max(1, Math.round((maxDay - minDay) / 86400000) + 1) : months * 30;
+  let points = overridePoints;
+  for (const bucket of monthly.values()) {
+    for (const [category, spend] of bucket) {
+      const net = Math.max(0, spend);
+      points += net * rate(category);
+      const cap = card.caps.find((c) => c.period === 'month' && c.categories.includes(category));
+      if (cap) points -= Math.max(0, net - cap.limitCAD) * (rate(category) - cap.rateAfter);
+    }
+  }
+  for (const cap of card.caps) {
+    if (cap.period !== 'year') continue;
+    for (const category of cap.categories) {
+      const total = Math.max(0, totals.get(category) ?? 0);
+      const scaled = (cap.limitCAD * days) / 365;
+      points -= Math.max(0, total - scaled) * (rate(category) - cap.rateAfter);
+    }
+  }
+  return ((Math.max(0, points) / months) * 12 * cpp) / 100;
+}
+
+export interface StatementGroup {
+  cardId: string;
+  transactions: StatementTransaction[];
+}
+
+export interface StatementSuggestion extends Suggestion {
+  forCardId: string;
+}
+
+/**
+ * Compare each attributed owned card against every candidate on that card's
+ * own transactions. Same credit/segment/threshold rules as suggestNewCards.
+ */
+export function suggestFromStatements(
+  catalog: Catalog,
+  ownedCardIds: string[],
+  groups: StatementGroup[],
+  thresholdCAD: number = SUGGEST_THRESHOLD_CAD,
+): StatementSuggestion[] {
+  const owned = catalog.cards.filter((c) => ownedCardIds.includes(c.id));
+  if (owned.length === 0) return [];
+  const ownedSegments = new Set(owned.map((c) => c.segment));
+  const candidates = catalog.cards.filter(
+    (c) => !ownedCardIds.includes(c.id) && c.kind === 'credit' && ownedSegments.has(c.segment),
+  );
+  const out: StatementSuggestion[] = [];
+  for (const group of groups) {
+    const ownedCard = owned.find((c) => c.id === group.cardId);
+    if (!ownedCard || group.transactions.length === 0) continue;
+    const bestOwnedAnnualCAD = valueOfTransactions(catalog, ownedCard, group.transactions);
+    for (const card of candidates) {
+      const annualValueCAD = valueOfTransactions(catalog, card, group.transactions);
+      const incrementalCAD = annualValueCAD - bestOwnedAnnualCAD;
+      if (incrementalCAD >= thresholdCAD) {
+        out.push({ card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD, forCardId: group.cardId });
+      }
+    }
+  }
+  return out.sort((a, b) => b.incrementalCAD - a.incrementalCAD).slice(0, 3);
 }
