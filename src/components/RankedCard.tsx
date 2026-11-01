@@ -89,7 +89,7 @@ export function RankedCardView({
           className={cn(
             'border-[1.5px] font-bold',
             isWinner
-              ? 'border-current bg-transparent text-winner-foreground hover:bg-white/10 hover:text-winner-foreground'
+              ? 'border-current bg-transparent text-winner-foreground hover:bg-primary-foreground/10 hover:text-winner-foreground'
               : 'border-muted-foreground',
           )}
         >
@@ -101,14 +101,20 @@ export function RankedCardView({
       {row.tips.length > 0 && (
         <div
           className={cn(
-            'mt-3 flex flex-col gap-2.5 border-t border-dashed pt-2.5',
-            isWinner ? 'border-primary-foreground/25' : 'border-border',
+            'mt-3 flex flex-col gap-2.5 rounded-lg border p-3',
+            isWinner
+              ? 'border-primary-foreground/25 bg-primary-foreground/10'
+              : 'border-border bg-muted',
           )}
         >
           {row.tips.map((tip) => (
             <div key={tip.label}>
               <div className="mb-0.5 flex items-center gap-2">
-                <Badge variant="secondary">{strings.check.tipBadge}</Badge>
+                <Badge
+                  className={isWinner ? 'bg-primary-foreground text-primary hover:bg-primary-foreground' : undefined}
+                >
+                  {strings.check.tipBadge}
+                </Badge>
                 <span className="text-[13.5px] font-bold">{tip.label}</span>
               </div>
               <p className={cn('mt-0.5 text-[13px]', isWinner ? 'opacity-80' : 'text-muted-foreground')}>

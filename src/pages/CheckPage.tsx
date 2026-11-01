@@ -251,7 +251,7 @@ export function CheckPage(): ReactElement {
           {showLoyalty && loyalty && (
             <Card className="p-[18px]">
               <div className="mb-1 flex items-center gap-2">
-                <Badge variant="secondary">{strings.check.tipBadge}</Badge>
+                <Badge>{strings.check.tipBadge}</Badge>
                 <span className="text-[13.5px] font-bold">
                   {strings.loyalty.title}: {loyalty.name}
                 </span>

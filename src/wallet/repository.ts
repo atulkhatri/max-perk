@@ -18,6 +18,22 @@ export interface WalletRepository {
   addCard(uid: string, cardId: string): Promise<void>;
   removeCard(uid: string, cardId: string): Promise<void>;
   setLoyaltyUsed(uid: string, loyaltyIds: string[]): Promise<void>;
+  readSnapshot(uid: string): Promise<WalletSnapshot>;
+  mergeSnapshot(uid: string, guest: WalletSnapshot): Promise<{ addedCards: number; addedLoyalty: number }>;
+  clearUser(uid: string): Promise<void>;
+}
+
+/** Union merge: every id kept, first-seen order, no data loss by construction. */
+export function mergeWallets(into: WalletSnapshot, guest: WalletSnapshot): WalletSnapshot {
+  const cardIds = [...into.cardIds];
+  for (const id of guest.cardIds) {
+    if (!cardIds.includes(id)) cardIds.push(id);
+  }
+  const loyaltyUsed = [...into.loyaltyUsed];
+  for (const id of guest.loyaltyUsed) {
+    if (!loyaltyUsed.includes(id)) loyaltyUsed.push(id);
+  }
+  return { cardIds, loyaltyUsed };
 }
 
 let fxCache: Promise<typeof import('firebase/firestore')> | null = null;
@@ -91,5 +107,41 @@ export class FirestoreWalletRepository implements WalletRepository {
   async setLoyaltyUsed(uid: string, loyaltyIds: string[]): Promise<void> {
     const [{ doc, setDoc }, firestore] = await Promise.all([fx(), this.db]);
     await setDoc(doc(firestore, 'users', uid), { loyaltyUsed: loyaltyIds }, { merge: true });
+  }
+
+  async readSnapshot(uid: string): Promise<WalletSnapshot> {
+    const [{ collection, doc, getDoc, getDocs }, firestore] = await Promise.all([fx(), this.db]);
+    const userSnap = await getDoc(doc(firestore, 'users', uid));
+    const userData = userSnap.data() as { loyaltyUsed?: string[] } | undefined;
+    const walletSnap = await getDocs(collection(firestore, 'users', uid, 'wallet'));
+    return {
+      cardIds: walletSnap.docs.map((d) => d.id),
+      loyaltyUsed: Array.isArray(userData?.loyaltyUsed) ? userData.loyaltyUsed : [],
+    };
+  }
+
+  async mergeSnapshot(uid: string, guest: WalletSnapshot): Promise<{ addedCards: number; addedLoyalty: number }> {
+    const [{ doc, serverTimestamp, setDoc }, firestore] = await Promise.all([fx(), this.db]);
+    const current = await this.readSnapshot(uid);
+    const merged = mergeWallets(current, guest);
+    const addedCards = merged.cardIds.length - current.cardIds.length;
+    const addedLoyalty = merged.loyaltyUsed.length - current.loyaltyUsed.length;
+    const known = new Set(current.cardIds);
+    await Promise.all(
+      merged.cardIds
+        .filter((id) => !known.has(id))
+        .map((id) => setDoc(doc(firestore, 'users', uid, 'wallet', id), { addedAt: serverTimestamp() })),
+    );
+    if (addedLoyalty > 0) {
+      await setDoc(doc(firestore, 'users', uid), { loyaltyUsed: merged.loyaltyUsed }, { merge: true });
+    }
+    return { addedCards, addedLoyalty };
+  }
+
+  async clearUser(uid: string): Promise<void> {
+    const [{ collection, deleteDoc, doc, getDocs }, firestore] = await Promise.all([fx(), this.db]);
+    const walletSnap = await getDocs(collection(firestore, 'users', uid, 'wallet'));
+    await Promise.all(walletSnap.docs.map((d) => deleteDoc(d.ref)));
+    await deleteDoc(doc(firestore, 'users', uid));
   }
 }

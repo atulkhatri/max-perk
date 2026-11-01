@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
 import { AuthGate } from './components/AuthGate';
+import { Toaster } from './components/ui/toaster';
 import { useHashRoute } from './router';
 import { strings } from './strings';
 import { useTheme } from './theme/useTheme';
@@ -37,6 +38,7 @@ export function App(): ReactElement {
           </Suspense>
         </AuthGate>
       </AppShell>
+      <Toaster />
     </AuthProvider>
   );
 }

@@ -30,10 +30,12 @@ export const strings = {
     google: 'Continue with Google',
     signOut: 'Sign out',
     signedInAs: 'Signed in as',
+    signedInAsGuest: 'Browsing as a guest',
     errors: {
       generic: 'Something went wrong signing you in. Please try again.',
       popupBlocked: 'The Google sign-in window was blocked. Allow popups and try again.',
       emulatorGoogle: 'Google sign-in in local test mode uses a test profile.',
+      anonDisabled: 'Guest access is unavailable right now. You can still create an account below.',
     },
   },
   check: {
@@ -116,6 +118,14 @@ export const strings = {
     modes: { light: 'Light', dark: 'Dark', system: 'System' },
     lastRefresh: 'Card data last refreshed',
     account: 'Account',
+    guestTitle: 'Guest session',
+    guestLimitBrowser: 'Your wallet is saved only in this browser — clearing site data or cookies erases it.',
+    guestLimitDevice: 'A guest wallet stays on this device and never syncs anywhere.',
+    upgradeHint: 'Create an account or sign in to keep your wallet everywhere. Your guest cards merge in — nothing is lost.',
+    mergedTitle: 'Wallet merged',
+    mergedBody: 'Your guest cards were added — take a moment to review your wallet.',
+    keptTitle: 'Signed in',
+    keptBody: 'Your wallet was kept exactly as it was.',
   },
   categories: {
     grocery: 'Grocery',

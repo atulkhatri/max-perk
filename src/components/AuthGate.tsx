@@ -1,4 +1,4 @@
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { strings } from '../strings';
 import { Button } from './ui/button';
@@ -12,14 +12,27 @@ function errorMessage(error: unknown): string {
 }
 
 export function AuthGate({ children }: { children: ReactNode }): ReactElement {
-  const { user, loading, signInEmail, signUpEmail, signInGoogle } = useAuth();
+  const { user, loading, signInEmail, signUpEmail, signInGoogle, guestError, signInAnonymouslyOnce } =
+    useAuth();
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const triedGuest = useRef(false);
 
-  if (loading) return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
+  // Guests enter silently; the manual form below is only the fallback when
+  // automatic guest sign-in is unavailable.
+  useEffect(() => {
+    if (!loading && !user && !guestError && !triedGuest.current) {
+      triedGuest.current = true;
+      void signInAnonymouslyOnce();
+    }
+  }, [loading, user, guestError, signInAnonymouslyOnce]);
+
+  if (loading || (!user && !guestError)) {
+    return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
+  }
   if (user) return <>{children}</>;
 
   const submitEmail = async (event: React.FormEvent): Promise<void> => {
@@ -54,6 +67,7 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
         {mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}
       </h1>
       <p className="text-sm text-muted-foreground">{strings.auth.subtitle}</p>
+      {guestError && <p className="text-[13px] text-destructive">{guestError}</p>}
       <form className="flex flex-col gap-3.5" onSubmit={(e) => void submitEmail(e)}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="auth-email">{strings.auth.emailLabel}</Label>

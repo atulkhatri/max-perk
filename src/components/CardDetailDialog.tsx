@@ -71,11 +71,11 @@ export function CardDetailDialog({
         </div>
 
         {row.tips.length > 0 && (
-          <div className="mt-3 flex flex-col gap-2.5 border-t border-dashed border-border pt-2.5">
+          <div className="mt-3 flex flex-col gap-2.5 rounded-lg border border-border bg-muted p-3">
             {row.tips.map((tip) => (
               <div key={tip.label}>
                 <div className="mb-0.5 flex items-center gap-2">
-                  <Badge variant="secondary">{strings.check.tipBadge}</Badge>
+                  <Badge>{strings.check.tipBadge}</Badge>
                   <span className="text-[13.5px] font-bold">{tip.label}</span>
                 </div>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">{tip.detail}</p>

@@ -13,7 +13,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      className={cn('fixed inset-0 z-50 bg-black/55 animate-fade-in', className)}
+      className={cn('fixed inset-0 z-50 bg-zinc-950/60 animate-fade-in', className)}
       {...props}
     />
   );
