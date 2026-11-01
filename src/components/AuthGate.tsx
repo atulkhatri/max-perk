@@ -12,13 +12,14 @@ function errorMessage(error: unknown): string {
 }
 
 export function AuthGate({ children }: { children: ReactNode }): ReactElement {
-  const { user, loading, signInEmail, signUpEmail, signInGoogle, guestError, signInAnonymouslyOnce } =
+  const { user, loading, signInEmail, signUpEmail, signInGoogle, guestError, signInAnonymouslyOnce, sendPasswordReset } =
     useAuth();
-  const [mode, setMode] = useState<'in' | 'up'>('in');
+  const [mode, setMode] = useState<'in' | 'up' | 'reset'>('in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const triedGuest = useRef(false);
 
   // Guests enter silently; the manual form below is only the fallback when
@@ -40,7 +41,11 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
     setBusy(true);
     setError(null);
     try {
-      if (mode === 'in') await signInEmail(email, password);
+      if (mode === 'reset') {
+        const outcome = await sendPasswordReset(email.trim());
+        if (outcome.sent) setResetSent(true);
+        else setError(outcome.message);
+      } else if (mode === 'in') await signInEmail(email, password);
       else await signUpEmail(email, password);
     } catch (err) {
       setError(errorMessage(err));
@@ -61,12 +66,18 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
     }
   };
 
+  const switchMode = (next: 'in' | 'up' | 'reset'): void => {
+    setMode(next);
+    setError(null);
+    setResetSent(false);
+  };
+
   return (
     <div className="flex flex-col gap-3.5">
       <h1 className="font-display text-[32px] leading-[1.1] font-bold tracking-tight">
-        {mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}
+        {mode === 'reset' ? strings.auth.resetTitle : mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}
       </h1>
-      <p className="text-sm text-muted-foreground">{strings.auth.subtitle}</p>
+      {mode !== 'reset' && <p className="text-sm text-muted-foreground">{strings.auth.subtitle}</p>}
       {guestError && <p className="text-[13px] text-destructive">{guestError}</p>}
       <form className="flex flex-col gap-3.5" onSubmit={(e) => void submitEmail(e)}>
         <div className="flex flex-col gap-1.5">
@@ -80,37 +91,47 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="auth-password">{strings.auth.passwordLabel}</Label>
-          <Input
-            id="auth-password"
-            type="password"
-            autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        {mode !== 'reset' && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="auth-password">{strings.auth.passwordLabel}</Label>
+            <Input
+              id="auth-password"
+              type="password"
+              autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+        )}
         {error && <p className="text-[13px] text-destructive">{error}</p>}
+        {resetSent && <p className="text-[13px] text-muted-foreground">{strings.auth.resetSent}</p>}
         <Button type="submit" disabled={busy}>
-          {mode === 'in' ? strings.auth.signIn : strings.auth.signUp}
+          {mode === 'reset' ? strings.auth.resetSubmit : mode === 'in' ? strings.auth.signIn : strings.auth.signUp}
         </Button>
       </form>
-      <Button variant="secondary" type="button" disabled={busy} onClick={() => void submitGoogle()}>
-        {strings.auth.google}
-      </Button>
-      <Button
-        variant="link"
-        type="button"
-        className="self-start px-0"
-        onClick={() => {
-          setMode(mode === 'in' ? 'up' : 'in');
-          setError(null);
-        }}
-      >
-        {mode === 'in' ? strings.auth.needAccount : strings.auth.haveAccount}
-      </Button>
+      {mode !== 'reset' && (
+        <Button variant="secondary" type="button" disabled={busy} onClick={() => void submitGoogle()}>
+          {strings.auth.google}
+        </Button>
+      )}
+      {mode === 'reset' ? (
+        <Button variant="link" type="button" className="self-start px-0" onClick={() => switchMode('in')}>
+          {strings.auth.resetBack}
+        </Button>
+      ) : (
+        <>
+          {mode === 'in' && (
+            <Button variant="link" type="button" className="self-start px-0" onClick={() => switchMode('reset')}>
+              {strings.auth.forgotPassword}
+            </Button>
+          )}
+          <Button variant="link" type="button" className="self-start px-0" onClick={() => switchMode(mode === 'in' ? 'up' : 'in')}>
+            {mode === 'in' ? strings.auth.needAccount : strings.auth.haveAccount}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

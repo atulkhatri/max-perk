@@ -19,21 +19,21 @@ const MODE_ICONS: Record<ThemeMode, () => ReactElement> = {
 };
 
 function upgradeToast(outcome: UpgradeOutcome): void {
+  // Only a real merge interrupts the user; an unchanged wallet needs no announcement.
   if (outcome.mode === 'merged') {
     toast({ title: strings.settings.mergedTitle, description: strings.settings.mergedBody });
-  } else {
-    toast({ title: strings.settings.keptTitle, description: strings.settings.keptBody });
   }
 }
 
 export function SettingsPage(): ReactElement {
-  const { user, isGuest, signOutUser, linkEmail, linkGoogle } = useAuth();
+  const { user, isGuest, signOutUser, linkEmail, linkGoogle, sendPasswordReset } = useAuth();
   const { mode, setMode } = useTheme();
   const { catalog } = useCatalog();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const lastRefresh = new Date(`${catalog.dataAsOf}T00:00:00`).toLocaleDateString('en-CA', {
     year: 'numeric',
     month: 'long',
@@ -63,6 +63,19 @@ export function SettingsPage(): ReactElement {
     } finally {
       setBusy(false);
     }
+  };
+
+  const submitForgotPassword = async (): Promise<void> => {
+    if (!email.trim()) {
+      setError(strings.auth.resetNeedEmail);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const outcome = await sendPasswordReset(email.trim());
+    if (outcome.sent) setResetSent(true);
+    else setError(outcome.message);
+    setBusy(false);
   };
 
   return (
@@ -142,8 +155,18 @@ export function SettingsPage(): ReactElement {
                 />
               </div>
               {error && <p className="text-[13px] text-destructive">{error}</p>}
+              {resetSent && <p className="text-[13px] text-muted-foreground">{strings.auth.resetSent}</p>}
               <Button type="submit" disabled={busy}>
-                {strings.auth.signUp}
+                {strings.settings.upgradeSubmit}
+              </Button>
+              <Button
+                variant="link"
+                type="button"
+                className="self-start px-0"
+                disabled={busy}
+                onClick={() => void submitForgotPassword()}
+              >
+                {strings.auth.forgotPassword}
               </Button>
             </form>
             <Button variant="secondary" type="button" disabled={busy} onClick={() => void submitUpgradeGoogle()}>

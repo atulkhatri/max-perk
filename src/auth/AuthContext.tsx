@@ -7,6 +7,7 @@ import {
   linkWithCredential,
   linkWithPopup,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -31,6 +32,8 @@ interface AuthContextValue {
   signUpEmail: (email: string, password: string) => Promise<void>;
   signInGoogle: () => Promise<void>;
   signInAnonymouslyOnce: () => Promise<void>;
+  /** Email a password-reset link. Never rejects for unknown emails. */
+  sendPasswordReset: (email: string) => Promise<{ sent: true } | { sent: false; message: string }>;
   /** Upgrade a guest to a permanent account, merging wallets when needed. */
   linkEmail: (email: string, password: string) => Promise<UpgradeOutcome>;
   linkGoogle: () => Promise<UpgradeOutcome>;
@@ -43,6 +46,22 @@ function errorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   if (code === 'auth/popup-blocked') return strings.auth.errors.popupBlocked;
   return strings.auth.errors.generic;
+}
+
+/**
+ * Map a password-reset failure to UI. Unknown emails report success so the
+ * form never reveals whether an address has an account.
+ */
+export function resetPasswordOutcome(error: unknown): { sent: true } | { sent: false; message: string } {
+  // Null means the send succeeded. Any real error object without a Firebase
+  // code (network failure, etc.) is a genuine failure, not a success.
+  if (error === null || error === undefined) return { sent: true };
+  const code = (error as { code?: string } | null)?.code;
+  if (code === 'auth/user-not-found') return { sent: true };
+  if (code === 'auth/invalid-email' || code === 'auth/missing-email') {
+    return { sent: false, message: strings.auth.errors.invalidEmail };
+  }
+  return { sent: false, message: strings.auth.errors.generic };
 }
 
 /**
@@ -166,6 +185,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     await signOut(auth);
   }, []);
 
+  const sendPasswordReset = useCallback(async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return resetPasswordOutcome(null);
+    } catch (err) {
+      return resetPasswordOutcome(err);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -179,8 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       linkEmail,
       linkGoogle,
       signOutUser,
+      sendPasswordReset,
     }),
-    [user, loading, guestError, signInEmail, signUpEmail, signInGoogle, signInAnonymouslyOnce, linkEmail, linkGoogle, signOutUser],
+    [user, loading, guestError, signInEmail, signUpEmail, signInGoogle, signInAnonymouslyOnce, linkEmail, linkGoogle, signOutUser, sendPasswordReset],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
