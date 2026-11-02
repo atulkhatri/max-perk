@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { Pencil, X } from 'lucide-react';
 import { formatCAD } from '../format';
 import { useCatalog } from '../data/catalogStore';
 import type { CardSeed, EarnCategory } from '../data/types';
@@ -22,7 +23,8 @@ function SpendProfileCard({
   onCommit: (profile: Partial<Record<EarnCategory, number>>) => void;
   onReset: () => void;
 }): ReactElement {
-  const active = activeSpendProfile(spendProfile);
+  const active = useMemo(() => activeSpendProfile(spendProfile), [JSON.stringify(spendProfile)]);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(active.map((p) => [p.category, String(p.monthlyCAD)])),
   );
@@ -59,12 +61,61 @@ function SpendProfileCard({
     }
     if (Object.keys(fixed).length > 0) setDraft((d) => ({ ...d, ...fixed }));
     if (changed) onCommit(next);
+    setEditing(false);
   };
+
+  const reset = (): void => {
+    onReset();
+    setEditing(false);
+  };
+
+  if (!editing) {
+    const total = active.reduce((sum, p) => sum + p.monthlyCAD, 0);
+    return (
+      <Card className="p-[18px]">
+        <div className="flex items-start justify-between gap-2.5">
+          <div>
+            <h2 className="text-[17px] font-bold">{strings.suggest.spendTitle}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {strings.suggest.spendSummary
+                .replace('{total}', formatCAD(total, 0))
+                .replace('{n}', String(active.length))}
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            className="flex-none"
+            aria-label={strings.suggest.spendEdit}
+            onClick={() => setEditing(true)}
+          >
+            <Pencil />
+            {strings.suggest.spendEdit}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-[18px]">
-      <h2 className="text-[17px] font-bold">{strings.suggest.spendTitle}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{strings.suggest.spendSubtitle}</p>
+      <div className="flex items-start justify-between gap-2.5">
+        <div>
+          <h2 className="text-[17px] font-bold">{strings.suggest.spendTitle}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{strings.suggest.spendSubtitle}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          className="flex-none"
+          aria-label={strings.suggest.spendCancel}
+          onClick={() => setEditing(false)}
+        >
+          <X />
+        </Button>
+      </div>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {SPEND_PROFILE_CATEGORIES.map((category) => (
           <div key={category} className="flex flex-col gap-1.5">
@@ -81,11 +132,11 @@ function SpendProfileCard({
         ))}
       </div>
       <div className="mt-3 flex gap-2.5">
+        <Button variant="secondary" size="sm" type="button" onClick={reset}>
+          {strings.suggest.spendReset}
+        </Button>
         <Button size="sm" type="button" onClick={save}>
           {strings.suggest.spendSave}
-        </Button>
-        <Button variant="secondary" size="sm" type="button" onClick={onReset}>
-          {strings.suggest.spendReset}
         </Button>
       </div>
     </Card>
@@ -166,6 +217,7 @@ export function SuggestPage(): ReactElement {
             </p>
           )}
         </Card>
+        <StatementsBanner />
       </div>
     );
   }
@@ -176,7 +228,6 @@ export function SuggestPage(): ReactElement {
         {strings.suggest.title}
       </h1>
       <p className="-mt-2 text-sm text-muted-foreground">{strings.suggest.subtitle}</p>
-      <StatementsBanner />
       {spendCard}
       {bestOwned && (
         <Card className="border-transparent bg-winner p-4 text-winner-foreground shadow-md">
@@ -207,20 +258,20 @@ export function SuggestPage(): ReactElement {
           <div className="mt-3 grid grid-cols-2 border-t border-border pt-2.5">
             <div className="py-0.5 pr-3">
               <div className="text-xs font-semibold text-muted-foreground">
-                {strings.suggest.incrementalValue}
-                {strings.suggest.perYear}
-              </div>
-              <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
-                +{formatCAD(s.incrementalCAD, 0)}
-              </div>
-            </div>
-            <div className="border-l border-border py-0.5 pl-3">
-              <div className="text-xs font-semibold text-muted-foreground">
-                {strings.check.valueLabel}
+                {strings.suggest.totalValue}
                 {strings.suggest.perYear}
               </div>
               <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
                 {formatCAD(s.annualValueCAD, 0)}
+              </div>
+            </div>
+            <div className="border-l border-border py-0.5 pl-3">
+              <div className="text-xs font-semibold text-muted-foreground">
+                {strings.suggest.extraValue}
+                {strings.suggest.perYear}
+              </div>
+              <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
+                +{formatCAD(s.incrementalCAD, 0)}
               </div>
             </div>
           </div>
@@ -229,6 +280,7 @@ export function SuggestPage(): ReactElement {
           </div>
         </Card>
       ))}
+      <StatementsBanner />
     </div>
   );
 }

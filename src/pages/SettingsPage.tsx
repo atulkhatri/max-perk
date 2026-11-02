@@ -11,7 +11,13 @@ import { FeedbackCard } from '../components/FeedbackCard';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { toast } from '../components/ui/toaster';
+import { isExpiredSessionError } from '../auth/AuthContext';
 import type { UpgradeOutcome } from '../auth/AuthContext';
+
+function upgradeError(err: unknown): string {
+  if (isExpiredSessionError(err)) return strings.auth.errors.sessionExpired;
+  return err instanceof Error ? err.message : strings.auth.errors.generic;
+}
 
 const MODE_ICONS: Record<ThemeMode, () => ReactElement> = {
   light: () => <Sun />,
@@ -48,7 +54,7 @@ export function SettingsPage(): ReactElement {
     try {
       upgradeToast(await linkEmail(email, password));
     } catch (err) {
-      setError(err instanceof Error ? err.message : strings.auth.errors.generic);
+      setError(upgradeError(err));
     } finally {
       setBusy(false);
     }
@@ -60,7 +66,7 @@ export function SettingsPage(): ReactElement {
     try {
       upgradeToast(await linkGoogle());
     } catch (err) {
-      setError(err instanceof Error ? err.message : strings.auth.errors.generic);
+      setError(upgradeError(err));
     } finally {
       setBusy(false);
     }

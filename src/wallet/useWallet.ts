@@ -5,6 +5,15 @@ import type { EarnCategory } from '../data/types';
 import { db } from '../firebase';
 import { FirestoreWalletRepository, type WalletSnapshot } from './repository';
 
+// Last live snapshot per user: pages that mount later (every tab visit)
+// render instantly from the cache while the fresh subscription catches up,
+// instead of flashing "Loading…" on each navigation.
+const snapshotCache = new Map<string, WalletSnapshot>();
+
+// If Firestore never answers (offline, throttled, denied), render what we
+// have — cached or empty — instead of sticking on "Loading…" forever.
+const LOAD_TIMEOUT_MS = 8000;
+
 export function useWallet(): WalletSnapshot & {
   loading: boolean;
   addCard: (cardId: string) => Promise<void>;
@@ -14,7 +23,10 @@ export function useWallet(): WalletSnapshot & {
 } {
   const { user } = useAuth();
   const repo = useMemo(() => new FirestoreWalletRepository(db), []);
-  const [snapshot, setSnapshot] = useState<WalletSnapshot>({ cardIds: [], loyaltyUsed: [] });
+  const [snapshot, setSnapshot] = useState<WalletSnapshot>(() => ({
+    cardIds: [],
+    loyaltyUsed: [],
+  }));
   const [loading, setLoading] = useState(true);
   // Double-taps share one in-flight write instead of racing last-writer-wins.
   const loyaltyPending = useRef<Promise<void> | null>(null);
@@ -25,12 +37,23 @@ export function useWallet(): WalletSnapshot & {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const cached = snapshotCache.get(user.uid);
+    if (cached) {
+      setSnapshot(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     let unsub: Unsubscribe | undefined;
     let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, LOAD_TIMEOUT_MS);
     void repo
       .subscribe(user.uid, (next) => {
         if (cancelled) return;
+        clearTimeout(timer);
+        snapshotCache.set(user.uid, next);
         setSnapshot(next);
         setLoading(false);
       })
@@ -40,11 +63,13 @@ export function useWallet(): WalletSnapshot & {
       })
       .catch(() => {
         if (cancelled) return;
-        setSnapshot({ cardIds: [], loyaltyUsed: [] });
+        clearTimeout(timer);
+        setSnapshot(cached ?? { cardIds: [], loyaltyUsed: [] });
         setLoading(false);
       });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
       unsub?.();
     };
   }, [repo, user]);

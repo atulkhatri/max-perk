@@ -6,7 +6,6 @@ import { db } from '../firebase';
 import { strings } from '../strings';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from './ui/toaster';
@@ -32,7 +31,9 @@ export function FeedbackCard(): ReactElement {
   const { user, isGuest } = useAuth();
   const [kind, setKind] = useState('feature');
   const [text, setText] = useState('');
-  const [contact, setContact] = useState('');
+  // Honeypot: hidden from humans, irresistible to naive bots. A filled value
+  // means automation — pretend success without filing anything.
+  const [company, setCompany] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const t = strings.settings.feedback;
@@ -46,15 +47,24 @@ export function FeedbackCard(): ReactElement {
     );
   }
 
+  const email = user.email ?? '';
+
   const submit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     const now = Date.now();
+    if (company !== '') {
+      // Bot trap tripped: look successful, file nothing.
+      setText('');
+      setCompany('');
+      toast({ title: t.sentTitle, description: t.sentBody });
+      return;
+    }
     const sends = recentSends(now);
     if (sends.length >= 5 || (sends.length > 0 && now - sends[sends.length - 1] < COOLDOWN_MS)) {
       setError(t.errRateLimited);
       return;
     }
-    const checked = validateFeedback({ kind, text, contact }, { uid: user.uid, isAnonymous: user.isAnonymous });
+    const checked = validateFeedback({ kind, text }, { uid: user.uid, isAnonymous: user.isAnonymous, email });
     if (!checked.ok) {
       setError(checked.message);
       return;
@@ -67,8 +77,9 @@ export function FeedbackCard(): ReactElement {
       setText('');
       setKind('feature');
       toast({ title: t.sentTitle, description: t.sentBody });
-    } catch {
-      setError(strings.auth.errors.generic);
+    } catch (err) {
+      console.error('feedback submit failed', err);
+      setError(t.errSubmit);
     } finally {
       setBusy(false);
     }
@@ -78,6 +89,9 @@ export function FeedbackCard(): ReactElement {
     <Card className="p-[18px]">
       <h2 className="text-[17px] font-bold">{t.title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
+      {email !== '' && (
+        <p className="mt-1 text-[13px] text-muted-foreground">{t.sentAs.replace('{email}', email)}</p>
+      )}
       <form className="mt-3 flex flex-col gap-3" onSubmit={(e) => void submit(e)}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="feedback-kind">{t.kindLabel}</Label>
@@ -104,15 +118,16 @@ export function FeedbackCard(): ReactElement {
           />
           <span className="text-xs text-muted-foreground">{t.count.replace('{n}', String(text.length))}</span>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="feedback-contact">{t.contactLabel}</Label>
-          <Input
-            id="feedback-contact"
-            type="email"
-            autoComplete="email"
-            placeholder={t.contactPlaceholder}
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
+        {/* Honeypot anti-spam field: never shown, never autofilled. */}
+        <div className="hidden" aria-hidden="true">
+          <Label htmlFor="feedback-company">Company</Label>
+          <input
+            id="feedback-company"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
           />
         </div>
         <p className="text-[13px] text-muted-foreground">{t.hint}</p>

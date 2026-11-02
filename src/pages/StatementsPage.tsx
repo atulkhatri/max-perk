@@ -489,20 +489,20 @@ export function StatementsPage(): ReactElement {
               <div className="mt-3 grid grid-cols-2 border-t border-border pt-2.5">
                 <div className="py-0.5 pr-3">
                   <div className="text-xs font-semibold text-muted-foreground">
-                    {strings.suggest.incrementalValue}
-                    {strings.suggest.perYear}
-                  </div>
-                  <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
-                    +{formatCAD(s.incrementalCAD, 0)}
-                  </div>
-                </div>
-                <div className="border-l border-border py-0.5 pl-3">
-                  <div className="text-xs font-semibold text-muted-foreground">
-                    {strings.check.valueLabel}
+                    {strings.suggest.totalValue}
                     {strings.suggest.perYear}
                   </div>
                   <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
                     {formatCAD(s.annualValueCAD, 0)}
+                  </div>
+                </div>
+                <div className="border-l border-border py-0.5 pl-3">
+                  <div className="text-xs font-semibold text-muted-foreground">
+                    {strings.suggest.extraValue}
+                    {strings.suggest.perYear}
+                  </div>
+                  <div className="font-display text-[28px] leading-[1.2] tracking-tight tabular-nums">
+                    +{formatCAD(s.incrementalCAD, 0)}
                   </div>
                 </div>
               </div>

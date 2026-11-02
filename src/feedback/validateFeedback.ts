@@ -5,18 +5,19 @@ export type FeedbackKind = 'feature' | 'bug' | 'correction';
 export interface FeedbackInput {
   kind: string;
   text: string;
-  contact: string;
 }
 
 export interface FeedbackAuth {
   uid: string | null;
   isAnonymous: boolean;
+  /** Account email, attached to the report by us — never typed by the sender. */
+  email: string | null;
 }
 
 export interface ValidFeedback {
   kind: FeedbackKind;
   text: string;
-  contact?: string;
+  contact: string;
 }
 
 function isEmailShape(value: string): boolean {
@@ -25,7 +26,9 @@ function isEmailShape(value: string): boolean {
 
 /**
  * Client mirror of the firestore.rules feedback guards (plus the auth gate).
- * Rules remain the authority; this only shapes the form before sending.
+ * Rules remain the authority; this only shapes the form before sending. The
+ * contact email always comes from the signed-in account, so there is no
+ * user-typed address to validate or spam with.
  */
 export function validateFeedback(
   input: FeedbackInput,
@@ -44,9 +47,9 @@ export function validateFeedback(
   if (text.length > 2000) {
     return { ok: false, message: strings.settings.feedback.errTooLong };
   }
-  const contact = input.contact.trim();
-  if (contact !== '' && !isEmailShape(contact)) {
-    return { ok: false, message: strings.settings.feedback.errEmail };
+  const contact = (auth.email ?? '').trim();
+  if (!isEmailShape(contact)) {
+    return { ok: false, message: strings.settings.feedback.errNoEmail };
   }
-  return { ok: true, value: { kind: input.kind, text, ...(contact === '' ? {} : { contact }) } };
+  return { ok: true, value: { kind: input.kind, text, contact } };
 }

@@ -4,6 +4,7 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getIdToken,
   linkWithCredential,
   linkWithPopup,
   onAuthStateChanged,
@@ -42,9 +43,55 @@ interface AuthContextValue {
 
 const Ctx = createContext<AuthContextValue | null>(null);
 
+/**
+ * Credentials the server no longer honors: the emulator was reset, the
+ * account was deleted elsewhere, or the session was revoked. The stored
+ * token is useless — callers should drop it (sign out) and let the user
+ * start over instead of surfacing a raw Firebase message.
+ */
+export function isStaleCredentialError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return (
+    code === 'auth/invalid-refresh-token' ||
+    code === 'auth/user-token-expired' ||
+    code === 'auth/user-disabled' ||
+    code === 'auth/user-not-found'
+  );
+}
+
+/**
+ * The guest session died server-side after the tab loaded (emulator reset,
+ * revoked session): linking with its token fails with a token error, and the
+ * guest wallet is unreachable. Drop the dead session and finish as a plain
+ * sign-up-or-sign-in instead of stranding the user.
+ */
+async function recoverDeadGuestLink(
+  signUp: () => Promise<unknown>,
+  signIn: () => Promise<unknown>,
+): Promise<UpgradeOutcome> {
+  await signOut(auth);
+  try {
+    await signUp();
+  } catch (signUpErr) {
+    if ((signUpErr as { code?: string } | null)?.code !== 'auth/email-already-in-use') throw signUpErr;
+    await signIn();
+  }
+  return { mode: 'kept' };
+}
+
+/**
+ * Form-facing subset: only a dead token means "session expired". A wrong
+ * email is just a failed sign-in (also safer: no account-existence signal).
+ */
+export function isExpiredSessionError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return code === 'auth/invalid-refresh-token' || code === 'auth/user-token-expired';
+}
+
 function errorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   if (code === 'auth/popup-blocked') return strings.auth.errors.popupBlocked;
+  if (isExpiredSessionError(error)) return strings.auth.errors.sessionExpired;
   return strings.auth.errors.generic;
 }
 
@@ -99,25 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
   const [guestError, setGuestError] = useState<string | null>(null);
   const anonAttempt = useRef<Promise<void> | null>(null);
 
-  useEffect(() => onAuthStateChanged(auth, (u) => {
-    setUser(u);
-    setLoading(false);
-  }), []);
-
-  const signInEmail = useCallback(async (email: string, password: string): Promise<void> => {
-    await signInWithEmailAndPassword(auth, email, password);
-  }, []);
-
-  const signUpEmail = useCallback(async (email: string, password: string): Promise<void> => {
-    await createUserWithEmailAndPassword(auth, email, password);
-  }, []);
-
-  const provider = useMemo(() => new GoogleAuthProvider(), []);
-
-  const signInGoogle = useCallback(async (): Promise<void> => {
-    await signInWithPopup(auth, provider);
-  }, [provider]);
-
   const signInAnonymouslyOnce = useCallback(async (): Promise<void> => {
     if (auth.currentUser) return;
     if (!anonAttempt.current) {
@@ -135,6 +163,61 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     return anonAttempt.current;
   }, []);
 
+  // Drop a dead session and start a fresh guest one. The cached attempt must
+  // reset first: AuthGate only fires one guest sign-in per mount and would
+  // otherwise never retry, stranding the app on "Loading…".
+  const recoverToGuest = useCallback(async (): Promise<void> => {
+    anonAttempt.current = null;
+    await signOut(auth).catch(() => {});
+    setUser(null);
+    setLoading(false);
+    await signInAnonymouslyOnce().catch(() => {
+      // Guest entry reports its own failure via guestError; nothing to add.
+    });
+  }, [signInAnonymouslyOnce]);
+
+  // Session validation: the SDK restores persisted users lazily and never
+  // reports a dead server-side session on its own, so validate every user
+  // object the observer delivers (initial restore included) with one forced
+  // refresh. A stale token fails over to a fresh guest instead of haunting
+  // every later sign-in/upgrade with token errors.
+  const checkedUid = useRef<string | null>(null);
+  useEffect(
+    () =>
+      onAuthStateChanged(
+        auth,
+        (u) => {
+          setUser(u);
+          setLoading(false);
+          if (u && checkedUid.current !== u.uid) {
+            checkedUid.current = u.uid;
+            void getIdToken(u, true).catch((err: unknown) => {
+              if (isStaleCredentialError(err)) void recoverToGuest();
+            });
+          }
+        },
+        (err) => {
+          if (isStaleCredentialError(err)) void recoverToGuest();
+          else setLoading(false);
+        },
+      ),
+    [recoverToGuest],
+  );
+
+  const signInEmail = useCallback(async (email: string, password: string): Promise<void> => {
+    await signInWithEmailAndPassword(auth, email, password);
+  }, []);
+
+  const signUpEmail = useCallback(async (email: string, password: string): Promise<void> => {
+    await createUserWithEmailAndPassword(auth, email, password);
+  }, []);
+
+  const provider = useMemo(() => new GoogleAuthProvider(), []);
+
+  const signInGoogle = useCallback(async (): Promise<void> => {
+    await signInWithPopup(auth, provider);
+  }, [provider]);
+
   const linkEmail = useCallback(
     async (email: string, password: string): Promise<UpgradeOutcome> => {
       const current = auth.currentUser;
@@ -148,6 +231,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         await linkWithCredential(current, EmailAuthProvider.credential(email, password));
         return { mode: 'kept' };
       } catch (err) {
+        if (isExpiredSessionError(err)) {
+          return recoverDeadGuestLink(
+            () => signUpEmail(email, password),
+            () => signInWithEmailAndPassword(auth, email, password),
+          );
+        }
         if ((err as { code?: string } | null)?.code !== 'auth/email-already-in-use') throw err;
         // Returning user: snapshot the guest wallet first (still authed as
         // guest), then sign into the existing account and union-merge the
@@ -172,6 +261,11 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       await linkWithPopup(current, provider);
       return { mode: 'kept' };
     } catch (err) {
+      if (isExpiredSessionError(err)) {
+        await signOut(auth);
+        await signInWithPopup(auth, provider);
+        return { mode: 'kept' };
+      }
       if ((err as { code?: string } | null)?.code !== 'auth/credential-already-in-use') throw err;
       const guestUid = current.uid;
       const repo = new FirestoreWalletRepository(db);
@@ -183,6 +277,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
 
   const signOutUser = useCallback(async (): Promise<void> => {
     await signOut(auth);
+    // The spent attempt must not be reused: the next guest entry has to mint
+    // a fresh anonymous session instead of stranding the app on "Loading…".
+    anonAttempt.current = null;
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string) => {

@@ -1,7 +1,7 @@
 # PRD: Credit Card Rewards Advisor (working title)
 
 ## Goal
-Help Canadian shoppers instantly know which credit card they own gives the best return for a specific purchase at a specific store — e.g., groceries at Loblaws, dining at Pizza Hut — by comparing true reward value, not just points, and by factoring in card perks like extended warranty and travel insurance where they matter (e.g., electronics, car rentals, hotel bookings). The app also guides users on redeeming points for maximum value and suggests new cards worth adding.
+Help Canadian shoppers instantly know which credit card they own gives the best return for a specific purchase at a specific store — e.g., groceries at Loblaws, dining at Pizza Hut — by comparing true reward value, not just points, and by factoring in card perks like extended warranty and travel insurance where they matter (e.g., electronics, car rentals, hotel bookings). The app also guides users on redeeming points for maximum value and suggests upgrade cards that would earn more for their spending.
 
 ## Target users
 - Canadian consumers who own 2+ credit cards and shop across grocery, dining, gas, and everyday retail.
@@ -15,7 +15,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - For benefit-sensitive purchases (e.g., electronics, car rentals, hotels), the recommendation factors in card perks such as extended warranty and rental car insurance.
 - Spend amount is an optional input that sharpens estimates where caps or tiered rates apply.
 - Each recommendation includes best-value redemption guidance for the relevant program.
-- The app suggests new cards worth getting when one would meaningfully beat owned cards for the user's usage.
+- The app suggests upgrade cards that would earn more when one would meaningfully beat owned cards for the user's usage, showing total yearly value first and the extra over the user's best second.
 - Contextual benefit reminders and bank/statement-credit offers on owned cards are surfaced at check time.
 
 ## Core user flows (responsive web app, mobile-first UX)
@@ -25,7 +25,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 4. **Loyalty nudge:** if a store loyalty program (e.g., PC Optimum at Loblaws-banner stores) can add rewards on top, the app suggests signing up and factors the stacking into guidance.
 5. **Perk-aware check:** for purchases where benefits matter more than points — electronics (extended warranty), car rentals (rental car insurance), hotel stays (e.g., Marriott perks or travel coverage) — the answer highlights the best owned card for coverage and calls out key conditions (e.g., must pay in full with the card).
 6. **Redemption guidance:** for the recommended card's program, the app shows the best-value ways to redeem (e.g., transfer partners, high-value redemption options).
-7. **New-card suggestion:** when a card the user doesn't own would beat owned cards for their usage, the app suggests it with estimated incremental value.
+7. **Upgrade suggestion:** when a card the user doesn't own would beat owned cards for their usage, the app suggests it with total yearly value first and the extra over their best second.
 8. **Reminders & offers:** at check time, the app shows contextual benefit reminders (e.g., "pay in full with card X to keep rental coverage") and any bank/statement-credit offers on owned cards that apply.
 
 ## Functional requirements
@@ -60,12 +60,12 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - For benefit-sensitive categories (electronics, car rentals, hotels, travel), rank owned cards by coverage first, with rewards as a secondary factor.
 - Surface key benefit conditions in plain language (e.g., pay in full with the card, rental day limits, coverage exclusions) with a pointer to full issuer terms.
 
-### New-card recommender
-- Compare owned cards against notable unowned Canadian cards for the user's categories and spend.
-- Suggest a new card only when it would meaningfully beat owned cards (currently $50/year over the best owned card); show estimated incremental value.
-- Users can edit the monthly spend profile behind suggestions; fee-adjusted value (earn minus annual fee) shows as display-only small text since fees are sometimes waived; the best owned card is highlighted as the competition.
+### Upgrade recommender
+- Compare owned cards against notable unowned Canadian cards for the user's categories and spend ("Upgrades" tab, titled "Cards that could earn you more").
+- Suggest a card only when it would meaningfully beat owned cards (currently $50/year over the best owned card); each pick shows Total value/year first and Extra vs your best/year second.
+- The monthly spend panel shows a compact total by default with an Edit button that expands the per-category fields; Save changes writes once and Reset to defaults clears to catalog defaults. Fee-adjusted value (earn minus annual fee) shows as display-only small text since fees are sometimes waived; the best owned card is highlighted as the competition. The real-spending statement banner sits at the bottom of the page.
 - Users can upload bank statements (PDF/CSV, up to 24 files) for comparison against their real categorized spending; files never leave the browser and results are session-only.
-- Signed-in users can send feedback (feature request, bug, card-data correction) from Settings; reports are stored for weekly review with no public listing.
+- Signed-in users can send feedback (feature request, bug, card-data correction) from Settings; the account email is attached automatically and the form warns against personal details. Any card's Details popup has a flag-icon Report button (confirmation first) that files the card into cardReports for curator review. Anti-spam: auth required, honeypot field, 5/day + 30s client limits, required email shape in rules. Submit failures show a send-specific error (never a sign-in message).
 - No in-app applications (out of scope); suggestion only.
 
 ### Reminders & bank offers

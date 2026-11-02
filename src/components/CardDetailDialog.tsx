@@ -1,10 +1,33 @@
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
+import { Flag } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { submitCardReport } from '../cardReports/submitCardReport';
+import { validateCardReport } from '../cardReports/validateCardReport';
+import { db } from '../firebase';
 import { formatCAD, formatCpp, formatMultiplier, formatPoints } from '../format';
 import type { RankedCard } from '../ranking/rank';
 import type { BankOfferSeed, ProgramSeed } from '../data/types';
 import { strings } from '../strings';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
+import { toast } from './ui/toaster';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const COOLDOWN_MS = 30 * 1000;
+const REPORTS_KEY = 'card-report-sends';
+
+function recentSends(now: number): number[] {
+  try {
+    const raw = localStorage.getItem(REPORTS_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw) as unknown;
+    if (!Array.isArray(list)) return [];
+    return list.filter((t): t is number => typeof t === 'number' && now - t < DAY_MS);
+  } catch {
+    return [];
+  }
+}
 
 function SourceLinks({ text, sourceUrl }: { text: string; sourceUrl?: string }): ReactElement {
   return (
@@ -16,6 +39,94 @@ function SourceLinks({ text, sourceUrl }: { text: string; sourceUrl?: string }):
         </a>
       )}
     </>
+  );
+}
+
+/**
+ * Card-data report: flag icon + Report label, confirmation first, then one
+ * `cardReports` doc for curator review. Guests get a sign-in prompt.
+ */
+function CardReportSection({ cardId, cardName }: { cardId: string; cardName: string }): ReactElement {
+  const { user, isGuest } = useAuth();
+  const [confirming, setConfirming] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const t = strings.report;
+
+  if (isGuest || !user) {
+    return (
+      <div className="mt-2 border-t border-border pt-3">
+        <p className="text-[13px] text-muted-foreground">{t.signinPrompt}</p>
+      </div>
+    );
+  }
+
+  const submit = async (): Promise<void> => {
+    const now = Date.now();
+    const sends = recentSends(now);
+    if (sends.length >= 10 || (sends.length > 0 && now - sends[sends.length - 1] < COOLDOWN_MS)) {
+      setError(t.errRateLimited);
+      return;
+    }
+    const checked = validateCardReport(
+      cardId,
+      { uid: user.uid, isAnonymous: user.isAnonymous, email: user.email },
+    );
+    if (!checked.ok) {
+      setError(checked.message);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await submitCardReport(db, user.uid, checked.value);
+      localStorage.setItem(REPORTS_KEY, JSON.stringify([...sends, now]));
+      setConfirming(false);
+      setDone(true);
+      toast({ title: t.sentTitle, description: t.sentBody });
+    } catch (err) {
+      console.error('card report submit failed', err);
+      setError(t.errSubmit);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 border-t border-border pt-3">
+      {done ? (
+        <p className="text-[13px] text-muted-foreground">{t.sentBody}</p>
+      ) : confirming ? (
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[13px] font-bold">{t.confirmTitle}</p>
+          <p className="text-[13px] text-muted-foreground">{t.confirmBody.replace('{card}', cardName)}</p>
+          {error && <p className="text-[13px] text-destructive">{error}</p>}
+          <div className="flex gap-2.5">
+            <Button size="sm" type="button" disabled={busy} onClick={() => void submit()}>
+              {t.confirm}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setConfirming(false);
+                setError(null);
+              }}
+            >
+              {t.cancel}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="secondary" size="sm" type="button" onClick={() => setConfirming(true)}>
+          <Flag />
+          {t.button}
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -145,6 +256,8 @@ export function CardDetailDialog({
             <p className="text-[13px] text-muted-foreground">{strings.benefits.fullTerms}</p>
           </>
         )}
+
+        <CardReportSection cardId={row.card.id} cardName={row.card.name} />
       </DialogContent>
     </Dialog>
   );

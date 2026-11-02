@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { useAuth } from '../auth/AuthContext';
+import { useEffect, useState, type ReactElement, type ReactNode } from 'react';
+import { isExpiredSessionError, useAuth } from '../auth/AuthContext';
 import { strings } from '../strings';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,6 +8,7 @@ import { Label } from './ui/label';
 function errorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   if (code === 'auth/popup-blocked') return strings.auth.errors.popupBlocked;
+  if (isExpiredSessionError(error)) return strings.auth.errors.sessionExpired;
   return strings.auth.errors.generic;
 }
 
@@ -20,19 +21,49 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const triedGuest = useRef(false);
+  const [slow, setSlow] = useState(false);
 
   // Guests enter silently; the manual form below is only the fallback when
-  // automatic guest sign-in is unavailable.
+  // automatic guest sign-in is unavailable. The shared in-flight attempt
+  // dedupes StrictMode double-invokes, so this safely refires after every
+  // sign-out (which resets the attempt) instead of only once per mount.
   useEffect(() => {
-    if (!loading && !user && !guestError && !triedGuest.current) {
-      triedGuest.current = true;
+    if (!loading && !user && !guestError) {
       void signInAnonymouslyOnce();
     }
   }, [loading, user, guestError, signInAnonymouslyOnce]);
 
+  // Safety net: auth (or the silent guest sign-in) hanging — blocked SDK,
+  // no network — must not pin the whole app on "Loading…". Offer a retry.
+  useEffect(() => {
+    if (!loading && (user || guestError)) {
+      setSlow(false);
+      return;
+    }
+    const timer = setTimeout(() => setSlow(true), 10000);
+    return () => clearTimeout(timer);
+  }, [loading, user, guestError]);
+
   if (loading || (!user && !guestError)) {
-    return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
+        {slow && (
+          <>
+            <p className="text-[13px] text-muted-foreground">{strings.auth.errors.slowNotice}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="self-start"
+              onClick={() => window.location.reload()}
+            >
+              {strings.auth.errors.retry}
+            </Button>
+          </>
+        )}
+      </div>
+    );
   }
   if (user) return <>{children}</>;
 

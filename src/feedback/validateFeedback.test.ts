@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateFeedback } from './validateFeedback';
 import { strings } from '../strings';
 
-const USER = { uid: 'user-1', isAnonymous: false };
+const USER = { uid: 'user-1', isAnonymous: false, email: 'me@example.com' };
 
 describe('validateFeedback', () => {
   it('accepts the four routing examples with their kinds', () => {
@@ -13,14 +13,17 @@ describe('validateFeedback', () => {
       ['bug', 'The website shows 0 rewards for my card'],
     ];
     for (const [kind, text] of cases) {
-      const result = validateFeedback({ kind, text, contact: '' }, USER);
-      expect(result).toEqual({ ok: true, value: { kind, text } });
+      const result = validateFeedback({ kind, text }, USER);
+      expect(result).toEqual({ ok: true, value: { kind, text, contact: 'me@example.com' } });
     }
   });
 
-  it('keeps a valid contact and drops a blank one', () => {
+  it('attaches the account email and trims it', () => {
     expect(
-      validateFeedback({ kind: 'bug', text: 'Something broke badly here', contact: 'me@example.com' }, USER),
+      validateFeedback(
+        { kind: 'bug', text: 'Something broke badly here' },
+        { ...USER, email: '  me@example.com  ' },
+      ),
     ).toEqual({
       ok: true,
       value: { kind: 'bug', text: 'Something broke badly here', contact: 'me@example.com' },
@@ -29,34 +32,38 @@ describe('validateFeedback', () => {
 
   it('rejects bad input with form copy', () => {
     const t = strings.settings.feedback;
-    expect(validateFeedback({ kind: 'bug', text: 'too short', contact: '' }, USER)).toEqual({
+    expect(validateFeedback({ kind: 'bug', text: 'too short' }, USER)).toEqual({
       ok: false,
       message: t.errTooShort,
     });
-    expect(validateFeedback({ kind: 'bug', text: 'x'.repeat(2001), contact: '' }, USER)).toEqual({
+    expect(validateFeedback({ kind: 'bug', text: 'x'.repeat(2001) }, USER)).toEqual({
       ok: false,
       message: t.errTooLong,
     });
-    expect(validateFeedback({ kind: 'idea', text: 'A perfectly fine length report', contact: '' }, USER)).toEqual({
+    expect(validateFeedback({ kind: 'idea', text: 'A perfectly fine length report' }, USER)).toEqual({
       ok: false,
       message: t.errKind,
     });
-    expect(
-      validateFeedback({ kind: 'bug', text: 'A perfectly fine length report', contact: 'not-an-email' }, USER),
-    ).toEqual({ ok: false, message: t.errEmail });
-    expect(
-      validateFeedback({ kind: 'bug', text: 'A perfectly fine length report', contact: `a@${'b'.repeat(251)}.c` }, USER),
-    ).toEqual({ ok: false, message: t.errEmail });
+  });
+
+  it('rejects accounts without a usable email', () => {
+    const t = strings.settings.feedback;
+    for (const email of [null, '', 'not-an-email', `a@${'b'.repeat(251)}.c`]) {
+      expect(validateFeedback({ kind: 'bug', text: 'A perfectly fine length report' }, { ...USER, email })).toEqual({
+        ok: false,
+        message: t.errNoEmail,
+      });
+    }
   });
 
   it('rejects signed-out and anonymous senders', () => {
     const t = strings.settings.feedback;
-    const input = { kind: 'bug', text: 'A perfectly fine length report', contact: '' };
-    expect(validateFeedback(input, { uid: null, isAnonymous: false })).toEqual({
+    const input = { kind: 'bug', text: 'A perfectly fine length report' };
+    expect(validateFeedback(input, { uid: null, isAnonymous: false, email: 'me@example.com' })).toEqual({
       ok: false,
       message: t.errSignin,
     });
-    expect(validateFeedback(input, { uid: 'guest-1', isAnonymous: true })).toEqual({
+    expect(validateFeedback(input, { uid: 'guest-1', isAnonymous: true, email: null })).toEqual({
       ok: false,
       message: t.errSignin,
     });

@@ -76,9 +76,31 @@ function getShared(): SharedCatalog {
   return shared;
 }
 
+let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Loading safety net: if Firestore (SDK load or reads) hangs — offline,
+ * throttled, or denied — resolve to the last good (or bundled) catalog
+ * instead of showing "Loading…" forever. Cleared by any settled publish.
+ */
+function armSettleFallback(): void {
+  if (settleTimer) return;
+  settleTimer = setTimeout(() => {
+    settleTimer = null;
+    const current = getShared();
+    if (current.started && current.state.loading) {
+      publish({ ...current.state, loading: false });
+    }
+  }, 8000);
+}
+
 function publish(state: CatalogState): void {
   const current = getShared();
   current.state = state;
+  if (!state.loading && settleTimer) {
+    clearTimeout(settleTimer);
+    settleTimer = null;
+  }
   for (const listener of [...current.listeners]) listener(state);
 }
 
@@ -109,6 +131,7 @@ async function startShared(): Promise<void> {
   const first = getShared();
   if (first.started) return;
   first.started = true;
+  armSettleFallback();
   try {
     const firestore = await db;
     // Staleness gate: a fresh bundled copy needs no collection reads at all.
@@ -252,10 +275,9 @@ export function useCatalog(): CatalogState {
     return () => {
       current.listeners.delete(setState);
       current.refs -= 1;
-      if (current.refs <= 0) {
-        current.stop?.();
-        if (shared === current) shared = null;
-      }
+      // Keep the last good state (and the single meta-doc listener) across
+      // navigation: remounts reuse the cache with zero reads instead of
+      // refetching every collection on each tab visit.
     };
   }, []);
 

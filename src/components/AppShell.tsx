@@ -76,14 +76,14 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
             </span>
           )}
         </header>
-        <main className="flex flex-1 flex-col px-5 pt-6 pb-[calc(70px+28px)] lg:px-10 lg:pb-10">
+        <main className="flex flex-1 flex-col px-5 pt-6 pb-[calc(20px+env(safe-area-inset-bottom))] lg:px-10 lg:pb-10">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 lg:max-w-none">{children}</div>
         </main>
       </div>
       {user && (
         <nav
           aria-label={strings.app.name}
-          className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card/95 backdrop-blur-md lg:hidden"
+          className="sticky bottom-0 z-10 mt-auto border-t border-border bg-card/95 backdrop-blur-md lg:hidden"
         >
           <div className="mx-auto grid w-full max-w-[640px] grid-cols-4 gap-1 px-2.5 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))]">
             {TABS.map((tab) => {

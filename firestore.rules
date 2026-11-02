@@ -34,7 +34,7 @@ service cloud.firestore {
     }
 
     // User feedback: clients may only file new reports (non-anonymous, so a
-    // bot farm cannot mint guest uids and flood the queue). Triage happens in
+    // bot farm cannot mint guest uids and flood the queue; the account email is required). Triage happens in
     // the Firebase console, which bypasses these rules.
     match /feedback/{id} {
       allow create: if isNonAnonymous()
@@ -43,13 +43,32 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 10
         && request.resource.data.text.size() <= 2000
-        && (!('contact' in request.resource.data)
-          || (request.resource.data.contact is string
+        && ('contact' in request.resource.data
+          && (request.resource.data.contact is string
             && request.resource.data.contact.size() <= 254
             && request.resource.data.contact.matches('.*@.*\\..*')))
         && request.resource.data.status == 'new'
         && request.resource.data.createdAt == request.time
         && request.resource.data.keys().hasOnly(['kind', 'text', 'uid', 'contact', 'createdAt', 'status']);
+      allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow list, update, delete: if false;
+    }
+
+    // Card data reports: same shape as feedback — clients file new reports
+    // (non-anonymous, account email required), triage in the Firebase console.
+    match /cardReports/{id} {
+      allow create: if isNonAnonymous()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.cardId is string
+        && request.resource.data.cardId.size() >= 1
+        && request.resource.data.cardId.size() <= 128
+        && ('contact' in request.resource.data
+          && (request.resource.data.contact is string
+            && request.resource.data.contact.size() <= 254
+            && request.resource.data.contact.matches('.*@.*\\..*')))
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly(['cardId', 'uid', 'contact', 'createdAt', 'status']);
       allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow list, update, delete: if false;
     }

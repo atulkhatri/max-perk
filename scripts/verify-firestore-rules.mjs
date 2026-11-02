@@ -88,6 +88,17 @@ const cases = [
   { name: 'feedback list denied', method: 'GET', url: `${DB}/feedback?pageSize=5`, token: userA.idToken, expect: 'deny' },
   { name: 'feedback update denied', method: 'PATCH', url: `${DB}/feedback/${seedId}`, token: userA.idToken, body: { fields: { status: F('done') } }, expect: 'deny' },
   { name: 'feedback delete denied', method: 'DELETE', url: `${DB}/feedback/${seedId}`, token: userA.idToken, expect: 'deny' },
+  // card report creates
+  { name: 'card report create anon denied', method: 'POST', url: `${DB}/cardReports`, token: anon.idToken, body: { fields: { cardId: F('amex-cobalt'), uid: F(anon.localId), status: F('new') } }, expect: 'deny' },
+  { name: 'card report create unauth denied', method: 'POST', url: `${DB}/cardReports`, token: null, body: { fields: { cardId: F('amex-cobalt'), uid: F('x'), status: F('new') } }, expect: 'deny' },
+  { name: 'card report create missing card denied', method: 'POST', url: `${DB}/cardReports`, token: userA.idToken, body: { fields: { uid: F(userA.localId), status: F('new') } }, expect: 'deny' },
+  { name: 'card report create bad contact denied', method: 'POST', url: `${DB}/cardReports`, token: userA.idToken, body: { fields: { cardId: F('amex-cobalt'), uid: F(userA.localId), status: F('new'), contact: F('not-an-email') } }, expect: 'deny' },
+  { name: 'card report create extra key denied', method: 'POST', url: `${DB}/cardReports`, token: userA.idToken, body: { fields: { cardId: F('amex-cobalt'), uid: F(userA.localId), status: F('new'), evil: F('x') } }, expect: 'deny' },
+  // card report reads/writes (no REST-created seed exists; 404 still proves no leak)
+  { name: 'card report cross-user get denied', method: 'GET', url: `${DB}/cardReports/probe-missing`, token: userB.idToken, expect: 'deny' },
+  { name: 'card report list denied', method: 'GET', url: `${DB}/cardReports?pageSize=5`, token: userA.idToken, expect: 'deny' },
+  { name: 'card report update denied', method: 'PATCH', url: `${DB}/cardReports/probe-missing`, token: userA.idToken, body: { fields: { status: F('done') } }, expect: 'deny' },
+  { name: 'card report delete denied', method: 'DELETE', url: `${DB}/cardReports/probe-missing`, token: userA.idToken, expect: 'deny' },
   // wallet/user locks
   { name: 'wallet junk field denied', method: 'POST', url: `${DB}/users/${userA.localId}/wallet/amex-cobalt`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() }, evil: F('x') } }, expect: 'deny' },
   { name: 'wallet bad card id denied', method: 'POST', url: `${DB}/users/${userA.localId}/wallet/BAD ID!`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() } } }, expect: 'deny' },
