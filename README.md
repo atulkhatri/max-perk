@@ -57,6 +57,12 @@ flowchart LR
     SPA -.->|"local dev"| EMU["Emulators (auth + Firestore)"]
 ```
 
+## Future Milestones
+
+- More countries: USA credit cards next, then international coverage.
+- Mobile apps for iOS and Android with offline support.
+- Monetization through credit card application referrals.
+
 <details>
 <summary>Test user and seed data</summary>
 
