@@ -43,14 +43,34 @@ The emulator UI is available at http://127.0.0.1:4000 while emulators run.
 No Firebase project or account is needed: local development runs entirely
 against the emulators with the committed `.env.development`.
 
-## Test user and seed data
+## Architecture
+
+```mermaid
+flowchart LR
+    U(["User"]) --> SPA["Max Perk SPA (React + Vite)"]
+    SPA --> Rank["Ranking engine (pure TS)"]
+    Rank --> Sample["Bundled sample catalog"]
+    SPA --> Auth["Firebase Auth (guest, email, Google)"]
+    SPA --> DB[("Firestore")]
+    DB --> Wallet["Wallet and prefs (per user)"]
+    DB --> Live["Live catalog (synced JSON)"]
+    SPA -.->|"local dev"| EMU["Emulators (auth + Firestore)"]
+```
+
+<details>
+<summary>Test user and seed data</summary>
+
 
 `npm run seed:emulators` (aka `node scripts/seed-emulators.mjs`) is
 idempotent: it creates `tester@example.com` / `tester-1234` in the Auth
 emulator if missing and overwrites the wallet with the five demo cards
 above. Run it whenever you want a known-good state for end-to-end testing.
 
-## Scripts
+</details>
+
+<details>
+<summary>Scripts</summary>
+
 
 | Command | Purpose |
 |---|---|
@@ -67,7 +87,11 @@ above. Run it whenever you want a known-good state for end-to-end testing.
 | `npm run catalog:sync -- --confirm` | Publish a catalog to production Firestore (needs credentials, see below) |
 | `npm run deploy` | Build and deploy hosting + Firestore rules (needs `firebase login`) |
 
-## Configuration
+</details>
+
+<details>
+<summary>Configuration</summary>
+
 
 Environment files (see `.env.example` for every variable):
 
@@ -85,7 +109,11 @@ never be committed:
 - `CARDAPI_KEY` — live third-party key for the issuer-fetch trial script;
   lives in `.env.local` only.
 
-## Sample catalog vs full catalog
+</details>
+
+<details>
+<summary>Sample catalog vs full catalog</summary>
+
 
 The repo ships a small sample catalog
 (`src/data/seeds/sample-catalog.json`: 6 cards, 6 programs, 6 merchants,
@@ -95,7 +123,11 @@ and runs with zero setup. The maintainer's full researched catalog
 gitignored `data/` folder and is never committed. The `catalog:*` scripts
 accept `--data=PATH` to operate on a full local curation.
 
-## Project layout
+</details>
+
+<details>
+<summary>Project layout</summary>
+
 
 - `src/strings.ts` — every user-visible string in one file; `APP_NAME` renames the app.
 - `src/theme/` — light/dark/system modes + accent colours, persisted per browser.
@@ -110,7 +142,11 @@ accept `--data=PATH` to operate on a full local curation.
   `docs-local/` folder on the maintainer's machine.
 - `scripts/seed-emulators.mjs` — demo data seeding for local testing.
 
-## Notes and limits (v1)
+</details>
+
+<details>
+<summary>Notes and limits (v1)</summary>
+
 
 - Sample data is guidance, not promises: issuers change terms. Estimates state
   their assumptions in-app; full issuer terms always win.
@@ -121,3 +157,5 @@ accept `--data=PATH` to operate on a full local curation.
   purchase history, budgeting, credit scores, real-time feeds, claims,
   offline mode, fee flagging, yearly reviews, expiry monitoring,
   non-Canada markets, native apps.
+
+</details>
