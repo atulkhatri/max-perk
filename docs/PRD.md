@@ -5,7 +5,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ## Target users
 - Canadian consumers who own 2+ credit cards and shop across grocery, dining, gas, and everyday retail.
-- Users start instantly as guests (anonymous accounts) and optionally sign up; the card wallet is stored online and syncs across devices, with guest wallets merged on upgrade.
+- Users start instantly as guests (anonymous accounts) and optionally sign up; the card wallet is stored online and syncs across devices, with guest wallets merged on upgrade. With no account at all (signed out, or guest entry failed) the app stays fully usable on a device-local wallet, which merges into Firestore on the next sign-in.
 
 ## Success criteria (v1)
 - A user can get a best-card answer for a store + category in under 30 seconds.
@@ -31,7 +31,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 ## Functional requirements
 ### Accounts
 - Sign up and sign in (Firebase Authentication, per decision), plus password reset by email.
-- Anonymous guest sessions with no sign-in wall; upgrading links in place for new credentials or union-merges the guest wallet into an existing account. Settings discloses browser-local guest limits.
+- Anonymous guest sessions with no sign-in wall; upgrading links in place for new credentials or union-merges the guest wallet into an existing account. Settings discloses browser-local guest limits. Guest-entry failures show a retryable notice (never a wall) with the app usable underneath; stale guest errors are cleared on success, retry, recovery, and sign-out so they can never pin the login form.
 - Card wallet stored online and synced across a user's devices.
 
 ### Card wallet

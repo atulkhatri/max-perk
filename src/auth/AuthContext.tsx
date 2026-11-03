@@ -147,10 +147,20 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
   const anonAttempt = useRef<Promise<void> | null>(null);
 
   const signInAnonymouslyOnce = useCallback(async (): Promise<void> => {
-    if (auth.currentUser) return;
+    if (auth.currentUser) {
+      // A previous guest failure must not haunt later sessions: a signed-in
+      // user means entry worked, so any stale error is obsolete.
+      setGuestError(null);
+      return;
+    }
     if (!anonAttempt.current) {
+      // Clear the previous failure up front so a retry never shows a stale
+      // "Something went wrong" while the new attempt is still in flight.
+      setGuestError(null);
       anonAttempt.current = signInAnonymously(auth).then(
-        () => undefined,
+        () => {
+          setGuestError(null);
+        },
         (err: unknown) => {
           const code = (err as { code?: string } | null)?.code;
           setGuestError(
@@ -168,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
   // otherwise never retry, stranding the app on "Loading…".
   const recoverToGuest = useCallback(async (): Promise<void> => {
     anonAttempt.current = null;
+    setGuestError(null);
     await signOut(auth).catch(() => {});
     setUser(null);
     setLoading(false);
@@ -279,7 +290,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     await signOut(auth);
     // The spent attempt must not be reused: the next guest entry has to mint
     // a fresh anonymous session instead of stranding the app on "Loading…".
+    // The old error must not be reused either: it would block that guest
+    // re-entry and pin a stale "Something went wrong" on the login form.
     anonAttempt.current = null;
+    setGuestError(null);
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string) => {

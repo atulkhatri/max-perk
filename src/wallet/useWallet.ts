@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import type { EarnCategory } from '../data/types';
 import { db } from '../firebase';
 import { FirestoreWalletRepository, type WalletSnapshot } from './repository';
+import { clearLocalWallet, isEmptySnapshot, loadLocalWallet, saveLocalWallet } from './localWallet';
 
 // Last live snapshot per user: pages that mount later (every tab visit)
 // render instantly from the cache while the fresh subscription catches up,
@@ -30,12 +31,35 @@ export function useWallet(): WalletSnapshot & {
   const [loading, setLoading] = useState(true);
   // Double-taps share one in-flight write instead of racing last-writer-wins.
   const loyaltyPending = useRef<Promise<void> | null>(null);
+  // Signed-out wallet lives in localStorage so the app works with no account.
+  const [localSnap, setLocalSnap] = useState<WalletSnapshot>(() => loadLocalWallet());
+  // Uids that already absorbed the signed-out wallet (one merge per account).
+  const mergedUids = useRef<Set<string>>(new Set());
+
+  const mutateLocal = (next: WalletSnapshot): void => {
+    setLocalSnap(next);
+    saveLocalWallet(next);
+  };
 
   useEffect(() => {
     if (!user) {
       setSnapshot({ cardIds: [], loyaltyUsed: [] });
       setLoading(false);
       return;
+    }
+    // First sight of this account: fold any signed-out wallet into it so
+    // cards added while logged out survive the sign-in instead of vanishing.
+    if (!mergedUids.current.has(user.uid)) {
+      mergedUids.current.add(user.uid);
+      const pending = loadLocalWallet();
+      if (!isEmptySnapshot(pending)) {
+        void repo
+          .mergeSnapshot(user.uid, pending)
+          .then(() => clearLocalWallet())
+          .catch(() => {
+            // Offline or denied: keep the local copy; the device still shows it.
+          });
+      }
     }
     const cached = snapshotCache.get(user.uid);
     if (cached) {
@@ -73,6 +97,43 @@ export function useWallet(): WalletSnapshot & {
       unsub?.();
     };
   }, [repo, user]);
+
+  // Signed-out mode: fully local, no account needed.
+  if (!user) {
+    return {
+      ...localSnap,
+      loading: false,
+      addCard: (cardId) => {
+        if (!localSnap.cardIds.includes(cardId)) {
+          mutateLocal({ ...localSnap, cardIds: [...localSnap.cardIds, cardId] });
+        }
+        return Promise.resolve();
+      },
+      removeCard: (cardId) => {
+        mutateLocal({ ...localSnap, cardIds: localSnap.cardIds.filter((id) => id !== cardId) });
+        return Promise.resolve();
+      },
+      toggleLoyaltyUsed: (loyaltyId) => {
+        if (loyaltyPending.current) return loyaltyPending.current;
+        const next = localSnap.loyaltyUsed.includes(loyaltyId)
+          ? localSnap.loyaltyUsed.filter((id) => id !== loyaltyId)
+          : [...localSnap.loyaltyUsed, loyaltyId];
+        mutateLocal({ ...localSnap, loyaltyUsed: next });
+        loyaltyPending.current = Promise.resolve().finally(() => {
+          loyaltyPending.current = null;
+        });
+        return loyaltyPending.current;
+      },
+      setSpendProfile: (profile) => {
+        const next: WalletSnapshot =
+          profile === undefined
+            ? { cardIds: [...localSnap.cardIds], loyaltyUsed: [...localSnap.loyaltyUsed] }
+            : { ...localSnap, spendProfile: profile };
+        mutateLocal(next);
+        return Promise.resolve();
+      },
+    };
+  }
 
   return {
     ...snapshot,

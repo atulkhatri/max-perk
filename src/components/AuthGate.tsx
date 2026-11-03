@@ -27,6 +27,9 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
   // automatic guest sign-in is unavailable. The shared in-flight attempt
   // dedupes StrictMode double-invokes, so this safely refires after every
   // sign-out (which resets the attempt) instead of only once per mount.
+  // The guestError guard stays: without it a permanently failing backend
+  // (anonymous disabled, offline) would retry in a hot loop. Explicit
+  // retries go through the Retry button instead.
   useEffect(() => {
     if (!loading && !user && !guestError) {
       void signInAnonymouslyOnce();
@@ -44,29 +47,11 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
     return () => clearTimeout(timer);
   }, [loading, user, guestError]);
 
-  if (loading || (!user && !guestError)) {
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
-        {slow && (
-          <>
-            <p className="text-[13px] text-muted-foreground">{strings.auth.errors.slowNotice}</p>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="self-start"
-              onClick={() => window.location.reload()}
-            >
-              {strings.auth.errors.retry}
-            </Button>
-          </>
-        )}
-      </div>
-    );
-  }
   if (user) return <>{children}</>;
 
+  // No account (signed out, or guest entry failed): the app stays fully
+  // usable on the device-local wallet. Auth UI is a notice plus an optional
+  // sign-in form — never a wall that replaces the app.
   const submitEmail = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     setBusy(true);
@@ -103,13 +88,12 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
     setResetSent(false);
   };
 
-  return (
+  const signInForm = (
     <div className="flex flex-col gap-3.5">
       <h1 className="font-display text-[32px] leading-[1.1] font-bold tracking-tight">
         {mode === 'reset' ? strings.auth.resetTitle : mode === 'in' ? strings.auth.title : strings.auth.signUpTitle}
       </h1>
       {mode !== 'reset' && <p className="text-sm text-muted-foreground">{strings.auth.subtitle}</p>}
-      {guestError && <p className="text-[13px] text-destructive">{guestError}</p>}
       <form className="flex flex-col gap-3.5" onSubmit={(e) => void submitEmail(e)}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="auth-email">{strings.auth.emailLabel}</Label>
@@ -163,6 +147,62 @@ export function AuthGate({ children }: { children: ReactNode }): ReactElement {
           </Button>
         </>
       )}
+    </div>
+  );
+
+  // Guest entry still in flight (or auth still resolving): usable app with a
+  // lightweight status line instead of a blocking spinner.
+  if (loading || (!user && !guestError)) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">{strings.common.loading}</p>
+        {slow && (
+          <>
+            <p className="text-[13px] text-muted-foreground">{strings.auth.errors.slowNotice}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="self-start"
+              onClick={() => window.location.reload()}
+            >
+              {strings.auth.errors.retry}
+            </Button>
+          </>
+        )}
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-2">
+        <p className="text-[13px] text-muted-foreground">{strings.auth.signedOutNotice}</p>
+        {guestError && (
+          <div className="flex flex-col gap-2">
+            <p role="alert" className="text-[13px] text-destructive">
+              {guestError}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="self-start"
+              onClick={() => void signInAnonymouslyOnce()}
+            >
+              {strings.auth.errors.retry}
+            </Button>
+          </div>
+        )}
+      </div>
+      {children}
+      <details>
+        <summary className="cursor-pointer text-sm font-semibold text-primary">
+          {strings.auth.optionalSignIn}
+        </summary>
+        <div className="pt-3">{signInForm}</div>
+      </details>
     </div>
   );
 }

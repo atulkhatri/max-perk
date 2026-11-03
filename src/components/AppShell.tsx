@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
             <LogoMark />
             <span className="font-display text-[19px] font-bold tracking-wide text-heading">{strings.app.name}</span>
           </a>
-          {user && (
+          {
             <nav aria-label={strings.app.name} className="flex items-center gap-1">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
                 );
               })}
             </nav>
-          )}
+          }
           <span className="ml-auto flex items-center gap-3">
             {user?.email && (
               <span className="max-w-56 truncate text-[13px] text-muted-foreground">{user.email}</span>
@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 lg:max-w-none">{children}</div>
         </main>
       </div>
-      {user && (
+      {
         <nav
           aria-label={strings.app.name}
           className="sticky bottom-0 z-10 mt-auto border-t border-border bg-card/95 backdrop-blur-md lg:hidden"
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
             })}
           </div>
         </nav>
-      )}
+      }
     </div>
   );
 }

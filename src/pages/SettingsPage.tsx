@@ -129,13 +129,17 @@ export function SettingsPage(): ReactElement {
         <h2 className="text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
           {strings.settings.account}
         </h2>
-        {isGuest ? (
+        {isGuest || !user ? (
           <div className="mt-2 flex flex-col gap-3">
-            <p className="text-sm font-bold">{strings.settings.guestTitle}</p>
-            <ul className="m-0 list-disc pl-5 text-[13px] text-muted-foreground">
-              <li className="mt-1">{strings.settings.guestLimitBrowser}</li>
-              <li className="mt-1">{strings.settings.guestLimitDevice}</li>
-            </ul>
+            <p className="text-sm font-bold">{!user ? strings.settings.signedOutTitle : strings.settings.guestTitle}</p>
+            {!user ? (
+              <p className="text-[13px] text-muted-foreground">{strings.settings.signedOutBody}</p>
+            ) : (
+              <ul className="m-0 list-disc pl-5 text-[13px] text-muted-foreground">
+                <li className="mt-1">{strings.settings.guestLimitBrowser}</li>
+                <li className="mt-1">{strings.settings.guestLimitDevice}</li>
+              </ul>
+            )}
             <p className="text-[13px] text-muted-foreground">{strings.settings.upgradeHint}</p>
             <form className="flex flex-col gap-3" onSubmit={(e) => void submitUpgradeEmail(e)}>
               <div className="flex flex-col gap-1.5">
