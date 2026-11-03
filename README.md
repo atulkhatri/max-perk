@@ -159,3 +159,9 @@ accept `--data=PATH` to operate on a full local curation.
   non-Canada markets, native apps.
 
 </details>
+
+<details>
+<summary>License</summary>
+
+Max Perk is licensed under the PolyForm Noncommercial License 1.0.0 (see `LICENSE.md`): free for noncommercial use, commercial use needs a separate license. Dependencies keep their own licenses.
+</details>
