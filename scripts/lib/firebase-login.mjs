@@ -10,8 +10,17 @@ import { join } from 'node:path';
 export const FIREBASE_CLIENT_ID =
   process.env.FIREBASE_CLIENT_ID ??
   '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com';
-export const FIREBASE_CLIENT_SECRET =
-  process.env.FIREBASE_CLIENT_SECRET ?? 'REDACTED-FIREBASE-CLI-CLIENT-SECRET';
+// No fallback: a client secret must never live in source. Set
+// FIREBASE_CLIENT_SECRET in the environment (see .env.example).
+export const FIREBASE_CLIENT_SECRET = process.env.FIREBASE_CLIENT_SECRET ?? '';
+
+/** Fail with setup guidance instead of posting with a missing secret. */
+function requireClientSecret(clientSecret) {
+  if (typeof clientSecret === 'string' && clientSecret.length > 0) return clientSecret;
+  throw new Error(
+    'FIREBASE_CLIENT_SECRET is not set: export it (same OAuth client the Firebase CLI uses) or pass clientSecret explicitly',
+  );
+}
 
 /** Same token endpoint the Firebase CLI refresh flow posts to. */
 export const GOOGLE_TOKEN_URL = 'https://www.googleapis.com/oauth2/v3/token';
@@ -76,7 +85,7 @@ export async function refreshAccessToken(
   const form = new URLSearchParams({
     refresh_token: refreshToken,
     client_id: clientId,
-    client_secret: clientSecret,
+    client_secret: requireClientSecret(clientSecret),
     grant_type: 'refresh_token',
   });
   let res;
@@ -115,6 +124,8 @@ export async function firebaseLoginAccessToken({
   readFile,
   fetchFn = fetch,
   nowMs = Date.now(),
+  clientId = FIREBASE_CLIENT_ID,
+  clientSecret = FIREBASE_CLIENT_SECRET,
 } = {}) {
   if (!readFile) {
     ({ readFileSync: readFile } = await import('node:fs'));
@@ -124,7 +135,7 @@ export async function firebaseLoginAccessToken({
     try {
       const { refreshToken, cached } = readRefreshToken(candidate, readFile);
       if (cachedTokenFresh(cached, nowMs)) return cached.access_token;
-      return await refreshAccessToken(refreshToken, { fetchFn });
+      return await refreshAccessToken(refreshToken, { fetchFn, clientId, clientSecret });
     } catch (err) {
       lastError = err;
     }

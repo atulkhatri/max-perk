@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { checkCatalogJson } from './sync-catalog-to-firestore.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const real = JSON.parse(readFileSync(join(ROOT, 'data', 'catalog.curated.json'), 'utf8'));
+const real = JSON.parse(readFileSync(join(ROOT, 'src', 'data', 'seeds', 'sample-catalog.json'), 'utf8'));
 
 describe('checkCatalogJson', () => {
   it('accepts the real curated catalog', () => {

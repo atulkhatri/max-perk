@@ -66,9 +66,11 @@ describe('cachedTokenFresh', () => {
 });
 
 describe('refreshAccessToken', () => {
+  const creds = { clientId: 'test-client-id', clientSecret: 'test-client-secret' };
+
   it('posts the CLI refresh flow and returns the access token', async () => {
     const fetchFn = mockFetch({ access_token: 'at-new', expires_in: 3600 });
-    const token = await refreshAccessToken('rt-123', { fetchFn });
+    const token = await refreshAccessToken('rt-123', { fetchFn, ...creds });
     expect(token).toBe('at-new');
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toContain('googleapis.com/oauth2/v3/token');
@@ -79,15 +81,21 @@ describe('refreshAccessToken', () => {
 
   it('asks for a fresh login on invalid_grant', async () => {
     await expect(
-      refreshAccessToken('rt-bad', { fetchFn: mockFetch({ error: 'invalid_grant' }, false, 400) }),
+      refreshAccessToken('rt-bad', { fetchFn: mockFetch({ error: 'invalid_grant' }, false, 400), ...creds }),
     ).rejects.toThrow(/firebase login/);
   });
 
   it('wraps network failures without leaking the token', async () => {
     const failing = vi.fn().mockRejectedValue(new Error('socket hang up'));
-    await expect(refreshAccessToken('rt-secret', { fetchFn: failing })).rejects.toThrow(
+    await expect(refreshAccessToken('rt-secret', { fetchFn: failing, ...creds })).rejects.toThrow(
       /failed to reach Google/,
     );
+  });
+
+  it('fails with setup guidance when the client secret is missing', async () => {
+    await expect(
+      refreshAccessToken('rt-123', { fetchFn: mockFetch({}), clientSecret: '' }),
+    ).rejects.toThrow(/FIREBASE_CLIENT_SECRET is not set/);
   });
 });
 
@@ -106,7 +114,14 @@ describe('firebaseLoginAccessToken', () => {
       tokens: { refresh_token: 'rt-123', access_token: 'old', expires_at: 1 },
     });
     const fetchFn = mockFetch({ access_token: 'at-new', expires_in: 3600 });
-    const token = await firebaseLoginAccessToken({ env, platform: 'linux', readFile: () => stale, fetchFn });
+    const token = await firebaseLoginAccessToken({
+      env,
+      platform: 'linux',
+      readFile: () => stale,
+      fetchFn,
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+    });
     expect(token).toBe('at-new');
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });

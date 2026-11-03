@@ -1,4 +1,4 @@
-// Uploads data/catalog.curated.json to Firestore (/catalog/v1 + subcollections)
+// Uploads a catalog JSON (default: the committed sample) to Firestore (/catalog/v1 + subcollections)
 // so the app can read the live catalog. Privileged server-side write via the
 // REST API: service-account JWT for production, Bearer-owner for the emulator.
 //
@@ -39,7 +39,7 @@ function printHelp() {
                        (default: $FIRESTORE_ACCESS_TOKEN, e.g. from
                        gcloud auth print-access-token)
   --snapshot-ref=DIR   snapshot dir backing this curation (recorded in meta)
-  --data=PATH          catalog JSON (default: data/catalog.curated.json)
+  --data=PATH          catalog JSON (default: src/data/seeds/sample-catalog.json)
 
 Production auth resolves automatically, first match wins:
   1. --access-token=T (or $FIRESTORE_ACCESS_TOKEN)
@@ -58,7 +58,7 @@ function parseArgs(argv) {
     accessToken: process.env.FIRESTORE_ACCESS_TOKEN ?? null,
     serviceAccount: null,
     snapshotRef: null,
-    data: join(ROOT, 'data', 'catalog.curated.json'),
+    data: join(ROOT, 'src', 'data', 'seeds', 'sample-catalog.json'),
     help: false,
   };
   for (const token of argv) {

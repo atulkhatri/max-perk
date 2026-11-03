@@ -10,3 +10,8 @@ ui-debug.log
 data/snapshots/**/*.html
 data/snapshots/**/*.pdf
 data/snapshots/**/*.bin
+# Local-only: full researched catalog + snapshots stay on the maintainer's
+# machine (see README). The repo carries a small sample instead.
+/data/
+# Local-only working docs (kept on disk, never committed).
+/docs-local/

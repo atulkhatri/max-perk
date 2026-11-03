@@ -1,12 +1,12 @@
-// Bundled card catalog, backed by data/catalog.curated.json (the single source
-// of truth shared with the issuer-fetch and Firestore-sync scripts).
-// Curated from issuer pages; see data/README.md for the refresh ritual.
-// Welcome bonuses are excluded as rotating. Fields listed in `uncertain` are
-// best-effort estimates — confirm with the issuer.
+// Bundled sample catalog for public builds and first-run demos.
+// The full issuer-researched catalog (96 cards, snapshots, refresh ritual)
+// is the maintainer's local-only dataset and is NOT committed: see README
+// "Full catalog (maintainers)". This sample keeps every collection shape and
+// the ids the demo seed + tests rely on.
 
-import curated from '../../../data/catalog.curated.json';
+import sample from './sample-catalog.json';
 import type { CardSeed } from '../types';
 
-export const DATA_AS_OF: string = curated.dataAsOf;
+export const DATA_AS_OF: string = (sample as { dataAsOf: string }).dataAsOf;
 
-export const cards = curated.cards as CardSeed[];
+export const cards = (sample as { cards: CardSeed[] }).cards;

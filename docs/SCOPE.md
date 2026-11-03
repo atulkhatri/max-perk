@@ -5,9 +5,10 @@ where it lives in code or data.
 
 ## 1. Canonical v1 store + category list
 
-26 merchants across grocery, dining, gas, drugstore, transit, recurring,
-travel, and everyday spend, plus benefit-sensitive contexts (electronics,
-car rentals, hotels). See `src/data/seeds/merchants.ts`. Earn buckets:
+Sample catalog: 6 merchants across grocery, dining, gas, drugstore, and
+transit, plus benefit-sensitive contexts (electronics, car rentals,
+hotels). See `src/data/seeds/sample-catalog.json`. (The maintainer's full
+researched catalog is local-only; see README.) Earn buckets:
 grocery, dining, gas, travel, drugstore, transit, recurring, foreign, other.
 Merchant-to-category mapping is approximate by design and stated in-app.
 
@@ -44,8 +45,8 @@ trip-tracking in v1.
 
 ## 6. Bank offers tracked in v1 and sourcing
 
-A defined set of two representative offers, hand-curated as illustrative
-sample data (`src/data/seeds/offers.ts`). Each has a minimum spend and a
+One illustrative sample offer (`src/data/seeds/sample-catalog.json`).
+It has a minimum spend and a
 card scope; applicable offers are added to card values with a stated
 assumption. Presented as a curated sample, never as a live feed.
 
@@ -62,8 +63,8 @@ steps) plus a link-out to the program's signup page. Users toggle
 
 ## Refresh cadence
 
-Issuer pages re-checked weekly (see `docs/CARD_DATA_REFRESH.md` and
-`data/README.md`); `dataAsOf` is stored per card and shown in Settings along
-with the live/bundled catalog source. The curated JSON publishes to Firestore
-after human verification; the app falls back to its bundled copy offline.
+The bundled sample carries a `dataAsOf` date, shown in Settings along
+with the live/bundled catalog source. The app falls back to its bundled
+copy offline. Full-catalog refresh (maintainers only) is documented in
+the README.
 Welcome bonuses are excluded as rotating.

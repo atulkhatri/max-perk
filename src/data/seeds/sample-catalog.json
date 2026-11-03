@@ -1,0 +1,643 @@
+{
+  "dataAsOf": "2026-11-03",
+  "cards": [
+    {
+      "id": "amex-cobalt",
+      "name": "American Express Cobalt",
+      "issuer": "American Express",
+      "network": "Amex",
+      "annualFeeCAD": 191.88,
+      "programId": "amex-mr",
+      "earn": {
+        "grocery": 5,
+        "dining": 5,
+        "gas": 2,
+        "transit": 2,
+        "travel": 2,
+        "other": 1,
+        "drugstore": 1,
+        "recurring": 1,
+        "foreign": 1
+      },
+      "caps": [
+        {
+          "categories": [
+            "grocery",
+            "dining"
+          ],
+          "period": "year",
+          "limitCAD": 30000,
+          "rateAfter": 1
+        }
+      ],
+      "conditions": [
+        "$15.99 billed monthly ($191.88/year).",
+        "5\u00c3\u2014 on eats & drinks in Canada: groceries, restaurants, food delivery.",
+        "3\u00c3\u2014 on eligible streaming, 2\u00c3\u2014 on gas, transit and rideshares.",
+        "Amex is not accepted at Loblaws-banner grocery or Costco warehouses.",
+        "2.5% foreign transaction fee applies."
+      ],
+      "rankingNotes": [],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Doubles the manufacturer warranty up to 1 extra year."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "90 days against theft, loss or damage."
+        },
+        "rentalCarInsurance": {
+          "offered": true,
+          "note": "Collision/loss damage up to $85,000 MSRP. Pay in full with the card."
+        },
+        "travelMedical": {
+          "offered": true,
+          "note": "Up to $5M for the first 15 days of a trip (age 64 and under)."
+        },
+        "hotelPerks": {
+          "offered": false,
+          "note": "No hotel status; presale access only."
+        }
+      },
+      "dataAsOf": "2026-10-31",
+      "sourceUrls": [
+        "https://www.americanexpress.com/en-ca/credit-cards/cobalt-card/"
+      ],
+      "uncertain": [
+        "recurring"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    },
+    {
+      "id": "scotia-momentum",
+      "name": "Scotia Momentum Visa Infinite",
+      "issuer": "Scotiabank",
+      "network": "Visa",
+      "annualFeeCAD": 120,
+      "programId": "scotia-momentum",
+      "earn": {
+        "grocery": 4,
+        "recurring": 4,
+        "gas": 2,
+        "transit": 2,
+        "other": 1,
+        "dining": 1,
+        "travel": 1,
+        "drugstore": 1,
+        "foreign": 1
+      },
+      "caps": [
+        {
+          "categories": [
+            "grocery",
+            "recurring"
+          ],
+          "period": "year",
+          "limitCAD": 25000,
+          "rateAfter": 1
+        },
+        {
+          "categories": [
+            "gas",
+            "transit"
+          ],
+          "period": "year",
+          "limitCAD": 25000,
+          "rateAfter": 1
+        }
+      ],
+      "conditions": [
+        "4% on groceries, recurring bills and subscriptions; 2% on gas, transit, rideshare, food delivery.",
+        "Sit-down restaurants earn 1% \u00e2\u20ac\u201d only delivery earns 2%.",
+        "2.5% foreign transaction fee applies."
+      ],
+      "rankingNotes": [
+        "Yearly caps are shared across grouped categories; only the part counting toward this purchase is included."
+      ],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Doubles the manufacturer warranty up to 1 extra year."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "90-day purchase security up to $60,000 per year."
+        },
+        "rentalCarInsurance": {
+          "offered": true,
+          "note": "Collision/loss damage up to $65,000 MSRP for 48 days. Pay in full with the card."
+        },
+        "travelMedical": {
+          "offered": true,
+          "note": "Up to $1M for the first 15 days, travellers under 65."
+        },
+        "hotelPerks": {
+          "offered": true,
+          "note": "Visa Infinite Hotel Collection access."
+        }
+      },
+      "dataAsOf": "2026-10-27",
+      "sourceUrls": [
+        "https://moneymint.ca/credit_card/scotia-momentum-visa-infinite-card/",
+        "https://princeoftravel.com/reviews/scotia-momentum-visa-infinite-card/"
+      ],
+      "uncertain": [
+        "caps"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    },
+    {
+      "id": "bmo-cashback",
+      "name": "BMO CashBack World Elite Mastercard",
+      "issuer": "BMO",
+      "network": "Mastercard",
+      "annualFeeCAD": 139,
+      "programId": "bmo-cashback",
+      "earn": {
+        "grocery": 5,
+        "transit": 4,
+        "gas": 3,
+        "recurring": 2,
+        "other": 1,
+        "dining": 1,
+        "travel": 1,
+        "drugstore": 1,
+        "foreign": 1
+      },
+      "caps": [
+        {
+          "categories": [
+            "grocery"
+          ],
+          "period": "month",
+          "limitCAD": 500,
+          "rateAfter": 1
+        },
+        {
+          "categories": [
+            "transit"
+          ],
+          "period": "month",
+          "limitCAD": 300,
+          "rateAfter": 1
+        },
+        {
+          "categories": [
+            "gas"
+          ],
+          "period": "month",
+          "limitCAD": 300,
+          "rateAfter": 1
+        },
+        {
+          "categories": [
+            "recurring"
+          ],
+          "period": "month",
+          "limitCAD": 500,
+          "rateAfter": 1
+        }
+      ],
+      "conditions": [
+        "5-4-3-2-1 tiered structure with monthly caps per category.",
+        "Includes roadside assistance.",
+        "2.5% foreign transaction fee applies."
+      ],
+      "rankingNotes": [],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Extended warranty up to 2 years (per comparison sources)."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "Purchase protection up to 180 days (per comparison sources)."
+        },
+        "rentalCarInsurance": {
+          "offered": true,
+          "note": "Rental collision/loss coverage included (limits unverified). Pay in full with the card."
+        },
+        "travelMedical": {
+          "offered": true,
+          "note": "Emergency medical, about 8 days (per comparison sources)."
+        },
+        "hotelPerks": {
+          "offered": false
+        }
+      },
+      "dataAsOf": "2026-10-27",
+      "sourceUrls": [
+        "https://princeoftravel.com/credit-cards/bmo-cashback-world-elite-mastercard/",
+        "https://money.ca/credit-cards/reviews/bmo-cashback-world-elite-mastercard"
+      ],
+      "uncertain": [
+        "purchaseProtection",
+        "extendedWarranty",
+        "travelMedical",
+        "rentalCarInsurance"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    },
+    {
+      "id": "tangerine",
+      "name": "Tangerine Money-Back Credit Card",
+      "issuer": "Tangerine",
+      "network": "Mastercard",
+      "annualFeeCAD": 0,
+      "programId": "tangerine",
+      "earn": {
+        "grocery": 2,
+        "dining": 2,
+        "gas": 2,
+        "drugstore": 2,
+        "recurring": 2,
+        "transit": 2,
+        "other": 0.5,
+        "travel": 0.5,
+        "foreign": 0.5
+      },
+      "caps": [],
+      "conditions": [
+        "No annual fee. Pick 2 categories at 2% (a 3rd if rewards go to Tangerine Savings).",
+        "Non-chosen spend earns 0.5%. Rewards paid monthly.",
+        "2.5% foreign transaction fee applies."
+      ],
+      "rankingNotes": [
+        "Assumes you selected this purchase category as a 2% Tangerine category."
+      ],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Extended warranty on eligible purchases (detail unverified)."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "Purchase assurance on eligible purchases (detail unverified)."
+        },
+        "rentalCarInsurance": {
+          "offered": false
+        },
+        "travelMedical": {
+          "offered": false
+        },
+        "hotelPerks": {
+          "offered": false
+        }
+      },
+      "dataAsOf": "2026-10-31",
+      "sourceUrls": [
+        "https://www.tangerine.ca/en/personal/spend/credit-cards/money-back-credit-card",
+        "https://www.tangerine.ca/en/personal/spend/credit-cards"
+      ],
+      "uncertain": [
+        "purchaseProtection",
+        "extendedWarranty"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    },
+    {
+      "id": "pc-financial",
+      "name": "PC Financial World Elite Mastercard",
+      "issuer": "President's Choice Bank",
+      "network": "Mastercard",
+      "annualFeeCAD": 0,
+      "programId": "pc-optimum",
+      "earn": {
+        "grocery": 10,
+        "dining": 10,
+        "gas": 10,
+        "travel": 10,
+        "drugstore": 10,
+        "transit": 10,
+        "recurring": 10,
+        "foreign": 10,
+        "other": 10
+      },
+      "merchantRates": {
+        "loblaws": 30,
+        "shoppers": 45
+      },
+      "fuel": {
+        "centsPerLitre": 3,
+        "merchants": [
+          "esso"
+        ]
+      },
+      "caps": [],
+      "conditions": [
+        "No annual fee. 30 pts/$1 (3%) at Loblaw banners and Joe Fresh; 45 pts/$1 (4.5%) at Shoppers/Pharmaprix; 10 pts/$1 (1%) elsewhere; 3c/L at Esso/Mobil.",
+        "10,000 PC Optimum points = $10. Stacks with in-app personalized offers.",
+        "2.5% foreign transaction fee applies."
+      ],
+      "rankingNotes": [],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Extended warranty on eligible purchases (detail unverified)."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "Purchase assurance on eligible purchases (detail unverified)."
+        },
+        "rentalCarInsurance": {
+          "offered": false
+        },
+        "travelMedical": {
+          "offered": false
+        },
+        "hotelPerks": {
+          "offered": false
+        }
+      },
+      "dataAsOf": "2026-10-31",
+      "sourceUrls": [
+        "https://www.pcfinancial.ca/en/learning-hub/faqs/pc-mastercard-101/what-are-some-additional-details-and-benefits-of-the-presidents-choice-financial-world-elite-mastercard/",
+        "https://www.pcfinancial.ca/en/learning-hub/blog/pc-mastercard-get-10-percent-back-in-points/"
+      ],
+      "uncertain": [
+        "purchaseProtection",
+        "extendedWarranty"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    },
+    {
+      "id": "triangle",
+      "name": "Triangle World Elite Mastercard",
+      "issuer": "Canadian Tire Bank",
+      "network": "Mastercard",
+      "annualFeeCAD": 0,
+      "programId": "triangle",
+      "earn": {
+        "grocery": 3,
+        "other": 1,
+        "dining": 1,
+        "gas": 1,
+        "travel": 1,
+        "drugstore": 1,
+        "transit": 1,
+        "recurring": 1,
+        "foreign": 1
+      },
+      "merchantRates": {},
+      "caps": [
+        {
+          "categories": [
+            "grocery"
+          ],
+          "period": "year",
+          "limitCAD": 12000,
+          "rateAfter": 0.5
+        }
+      ],
+      "conditions": [
+        "No annual fee. 4% in CT Money at Canadian Tire, Sport Chek, Mark\u00e2\u20ac\u2122s and partners.",
+        "3% at grocery stores on the first $12,000 per year, then 0.5%.",
+        "5\u00c2\u00a2/L at Gas+ in CT Money (Gas+ stations are not tracked)."
+      ],
+      "rankingNotes": [],
+      "benefits": {
+        "extendedWarranty": {
+          "offered": true,
+          "note": "Extended warranty on eligible purchases (detail unverified)."
+        },
+        "purchaseProtection": {
+          "offered": true,
+          "note": "Purchase assurance on eligible purchases (detail unverified)."
+        },
+        "rentalCarInsurance": {
+          "offered": true,
+          "note": "Rental collision coverage reported on this tier (unverified). Pay in full with the card."
+        },
+        "travelMedical": {
+          "offered": false
+        },
+        "hotelPerks": {
+          "offered": false
+        }
+      },
+      "dataAsOf": "2026-10-27",
+      "sourceUrls": [
+        "https://money.ca/credit-cards/reviews/canadian-tire-triangle-world-elite-mastercard",
+        "https://www.thepointcalculator.com/ca/canadian-tire-money/cards/triangle-world-elite-mastercard/"
+      ],
+      "uncertain": [
+        "purchaseProtection",
+        "extendedWarranty",
+        "rentalCarInsurance"
+      ],
+      "kind": "credit",
+      "segment": "personal"
+    }
+  ],
+  "programs": [
+    {
+      "id": "amex-mr",
+      "name": "Amex Membership Rewards",
+      "typicalCpp": 2,
+      "methodology": "Assumes 1 Membership Rewards point redeemed via airline transfer partners at about 2.0\u00c2\u00a2. Statement-credit redemptions are worth far less (about 1.0\u00c2\u00a2).",
+      "redemption": [
+        {
+          "label": "Transfer 1:1 to Aeroplan for economy and short-haul awards",
+          "cpp": 2
+        },
+        {
+          "label": "Transfer to Aeroplan, Avios or Flying Blue for premium-cabin awards",
+          "cpp": 4,
+          "note": "High value but needs award availability."
+        },
+        {
+          "label": "Amex Travel Online or statement credit",
+          "cpp": 1,
+          "note": "Floor value \u00e2\u20ac\u201d avoid if you can transfer instead."
+        }
+      ]
+    },
+    {
+      "id": "scotia-momentum",
+      "name": "Scotia Momentum cash back",
+      "typicalCpp": 1,
+      "methodology": "Cash-back dollars at face value, paid out to the account.",
+      "redemption": [
+        {
+          "label": "Annual cash payout credited to the account",
+          "cpp": 1
+        },
+        {
+          "label": "Redeem cash back against the statement balance",
+          "cpp": 1
+        }
+      ]
+    },
+    {
+      "id": "bmo-cashback",
+      "name": "BMO CashBack Rewards",
+      "typicalCpp": 1,
+      "methodology": "Cash-back dollars at face value.",
+      "redemption": [
+        {
+          "label": "Statement credit redemption",
+          "cpp": 1
+        },
+        {
+          "label": "Deposit cash back to a BMO account",
+          "cpp": 1
+        }
+      ]
+    },
+    {
+      "id": "tangerine",
+      "name": "Tangerine Money-Back Rewards",
+      "typicalCpp": 1,
+      "methodology": "Cash-back dollars at face value, paid monthly.",
+      "redemption": [
+        {
+          "label": "Monthly statement credit",
+          "cpp": 1
+        },
+        {
+          "label": "Deposit to a Tangerine Savings Account",
+          "cpp": 1,
+          "note": "Unlocks a third 2% category."
+        }
+      ]
+    },
+    {
+      "id": "pc-optimum",
+      "name": "PC Optimum",
+      "typicalCpp": 0.1,
+      "methodology": "1,000 PC Optimum points = $1, so each point is worth 0.1\u00c2\u00a2 at base redemption. Bonus redemption events lift value to about 0.14\u00c2\u00a2.",
+      "redemption": [
+        {
+          "label": "Bonus redemption events (e.g. 100,000 pts for $140 of value)",
+          "cpp": 0.14,
+          "note": "Best value \u00e2\u20ac\u201d wait for an event when you can."
+        },
+        {
+          "label": "Redeem in 10,000-pt ($10) increments at Loblaw and Shoppers",
+          "cpp": 0.1
+        },
+        {
+          "label": "Redeem online via PC Express or partners",
+          "cpp": 0.1
+        }
+      ]
+    },
+    {
+      "id": "triangle",
+      "name": "Triangle Rewards (CT Money)",
+      "typicalCpp": 1,
+      "methodology": "Canadian Tire Money at face value across the Canadian Tire family of stores.",
+      "redemption": [
+        {
+          "label": "Redeem CT Money at Canadian Tire family banners",
+          "cpp": 1
+        },
+        {
+          "label": "Redeem CT Money on groceries and gas at partners where accepted",
+          "cpp": 1
+        }
+      ]
+    }
+  ],
+  "merchants": [
+    {
+      "id": "loblaws",
+      "name": "Loblaws",
+      "earn": "grocery",
+      "context": "general",
+      "loyaltyId": "pc-optimum"
+    },
+    {
+      "id": "sobeys",
+      "name": "Sobeys",
+      "earn": "grocery",
+      "context": "general",
+      "loyaltyId": "scene-plus"
+    },
+    {
+      "id": "shoppers",
+      "name": "Shoppers Drug Mart",
+      "earn": "drugstore",
+      "context": "general",
+      "loyaltyId": "pc-optimum"
+    },
+    {
+      "id": "esso",
+      "name": "Esso / Mobil",
+      "earn": "gas",
+      "context": "general",
+      "loyaltyId": "pc-optimum"
+    },
+    {
+      "id": "tim-hortons",
+      "name": "Tim Hortons",
+      "earn": "dining",
+      "context": "general",
+      "loyaltyId": "tims-rewards"
+    },
+    {
+      "id": "transit-fare",
+      "name": "City transit fare",
+      "earn": "transit",
+      "context": "general"
+    }
+  ],
+  "loyalty": [
+    {
+      "id": "pc-optimum",
+      "name": "PC Optimum",
+      "operator": "Loblaw Companies",
+      "headline": "Free loyalty program for Loblaw-banner grocery, Shoppers and Esso.",
+      "earnStructure": "Points come from personalized in-app offers and in-store bonus labels; 15 pts/$1 (1.5%) base at Shoppers Drug Mart and at least 10 pts/L at Esso/Mobil. 10,000 pts = $10 in redemptions.",
+      "howToJoin": "Join free in the PC Optimum app or at the customer service desk, then scan or enter your card number at checkout.",
+      "joinUrl": "https://www.pcoptimum.ca/",
+      "stackNote": "Stacks with PC Financial credit cards and personalized offers for extra value on top of card rewards."
+    },
+    {
+      "id": "scene-plus",
+      "name": "Scene+",
+      "operator": "Empire Company (Sobeys)",
+      "headline": "Free loyalty program for Sobeys, FreshCo, Foodland, Safeway, Longo\u00e2\u20ac\u2122s and Cineplex.",
+      "earnStructure": "Points on grocery and partner purchases plus personalized offers; redeem for groceries, movies and more.",
+      "howToJoin": "Join free online or in the Scene+ app, then scan at checkout.",
+      "joinUrl": "https://www.sceneplus.ca",
+      "stackNote": "Stack Scene+ points on top of whatever credit card you pay with at Sobeys-banner stores."
+    },
+    {
+      "id": "tims-rewards",
+      "name": "Tims Rewards",
+      "operator": "Tim Hortons",
+      "headline": "Free loyalty program for Tim Hortons purchases.",
+      "earnStructure": "Points on every purchase when you scan in the app; redeem for coffee and food.",
+      "howToJoin": "Join free in the Tim Hortons app and scan at checkout.",
+      "joinUrl": "https://www.timhortons.ca",
+      "stackNote": "Scan Tims Rewards and pay with your top dining card to double-dip."
+    }
+  ],
+  "bankOffers": [
+    {
+      "id": "offer-streaming-15",
+      "label": "10% back on streaming (up to $15)",
+      "detail": "10% back, up to $15, on the first $150 of streaming-service spend in a calendar month.",
+      "valueCAD": 15,
+      "minSpendCAD": 150,
+      "appliesTo": {
+        "cards": [
+          "scotia-momentum",
+          "tangerine"
+        ]
+      },
+      "categories": [
+        "recurring"
+      ],
+      "conditions": "Example offer \u00e2\u20ac\u201d activate it before you pay; one per card.",
+      "illustrative": true
+    }
+  ]
+}

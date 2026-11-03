@@ -1,6 +1,6 @@
-// Bundled loyalty programs, backed by data/catalog.curated.json.
+// Bundled sample loyalty programs; see cards.ts for the dataset note.
 
-import curated from '../../../data/catalog.curated.json';
+import sample from './sample-catalog.json';
 import type { LoyaltySeed } from '../types';
 
-export const loyaltyPrograms = curated.loyalty as LoyaltySeed[];
+export const loyaltyPrograms = (sample as { loyalty: LoyaltySeed[] }).loyalty;

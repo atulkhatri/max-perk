@@ -1,6 +1,6 @@
-// Bundled program valuations, backed by data/catalog.curated.json.
+// Bundled sample program valuations; see cards.ts for the dataset note.
 
-import curated from '../../../data/catalog.curated.json';
+import sample from './sample-catalog.json';
 import type { ProgramSeed } from '../types';
 
-export const programs = curated.programs as ProgramSeed[];
+export const programs = (sample as { programs: ProgramSeed[] }).programs;

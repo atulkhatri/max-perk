@@ -1,6 +1,6 @@
-// Bundled merchant list, backed by data/catalog.curated.json.
+// Bundled sample merchant list; see cards.ts for the dataset note.
 
-import curated from '../../../data/catalog.curated.json';
+import sample from './sample-catalog.json';
 import type { MerchantSeed } from '../types';
 
-export const merchants = curated.merchants as MerchantSeed[];
+export const merchants = (sample as { merchants: MerchantSeed[] }).merchants;
