@@ -42,7 +42,10 @@ export function WalletPage(): ReactElement {
       <p className="-mt-2 text-sm text-muted-foreground">{strings.wallet.subtitle}</p>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="wallet-search">{strings.wallet.addTitle}</Label>
+        <Label htmlFor="wallet-search">
+          {strings.wallet.addTitle}{' '}
+          <span className="font-normal text-muted-foreground">{strings.wallet.searchNote}</span>
+        </Label>
         <Input
           id="wallet-search"
           type="text"

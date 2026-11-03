@@ -85,6 +85,7 @@ export const strings = {
   wallet: {
     title: 'Your wallet',
     subtitle: 'Cards you own.',
+    searchNote: '(supports all major Canadian cards - more countries coming soon)',
     addTitle: 'Add a card',
     searchPlaceholder: 'Search Canadian cards…',
     add: 'Add',
@@ -198,7 +199,7 @@ export const strings = {
     guestTitle: 'Guest session',
     signedOutTitle: 'No account yet',
     signedOutBody: 'Sign in to sync your wallet across devices. Until then your wallet stays on this device.',
-    guestLimitBrowser: 'Your wallet is saved only in this browser — clearing site data or cookies erases it.',
+    guestLimitBrowser: 'Your wallet is saved only in this browser · clearing site data or cookies erases it.',
     guestLimitDevice: 'A guest wallet stays on this device and never syncs anywhere.',
     upgradeHint: 'New here? This creates your account. Already have one? Sign in with the same form - your guest cards merge in either way.',
     upgradeSubmit: 'Continue',
