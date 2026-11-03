@@ -10,6 +10,8 @@ export const strings = {
     name: APP_NAME,
     tagline: 'Make every card count.',
     emulatorBadge: 'Local test mode',
+    footerRights: 'All rights reserved.',
+    footerBuiltWith: 'Built with',
   },
   nav: {
     check: 'Best card',

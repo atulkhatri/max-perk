@@ -84,6 +84,21 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
         <main className="flex flex-1 flex-col px-5 pt-6 pb-[calc(20px+env(safe-area-inset-bottom))] lg:px-10 lg:pb-10">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 lg:max-w-none">{children}</div>
         </main>
+        <footer
+          className={
+            route === 'settings'
+              ? 'border-t border-border px-5 py-4 lg:px-10'
+              : 'hidden border-t border-border px-5 py-4 lg:block lg:px-10'
+          }
+        >
+          <p className="mx-auto w-full max-w-2xl text-center text-xs text-muted-foreground lg:max-w-none">
+            © {new Date().getFullYear()} {strings.app.name}. {strings.app.footerRights} {strings.app.footerBuiltWith}{' '}
+            <a href="https://ui.shadcn.com" target="_blank" rel="noreferrer">
+              shadcn/ui
+            </a>
+            .
+          </p>
+        </footer>
       </div>
       {
         <nav
