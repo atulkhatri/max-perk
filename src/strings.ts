@@ -3,12 +3,12 @@
 // To translate later: copy this module per locale (e.g. strings.fr.ts with
 // the same shape) and select it in one place (see `strings` export).
 
-export const APP_NAME = 'Card Offers';
+export const APP_NAME = 'Max Perk';
 
 export const strings = {
   app: {
     name: APP_NAME,
-    tagline: 'Know which card to use for every purchase.',
+    tagline: 'Make every card count.',
     emulatorBadge: 'Local test mode',
   },
   nav: {
@@ -31,7 +31,6 @@ export const strings = {
     signOut: 'Sign out',
     signedInAs: 'Signed in as',
     signedInAsGuest: 'Browsing as a guest',
-    optionalSignIn: 'Sign in or create an account (optional)',
     signedOutNotice: 'You are browsing without an account. Your wallet is saved on this device only.',
     forgotPassword: 'Forgot password?',
     resetTitle: 'Reset your password',
@@ -43,7 +42,7 @@ export const strings = {
       generic: 'Something went wrong signing you in. Please try again.',
       popupBlocked: 'The Google sign-in window was blocked. Allow popups and try again.',
       emulatorGoogle: 'Google sign-in in local test mode uses a test profile.',
-      anonDisabled: 'Guest access is unavailable right now. You can still create an account below.',
+      anonDisabled: 'Guest access is unavailable right now. You can still sign in from Settings.',
       invalidEmail: 'Enter a valid email address.',
       sessionExpired: 'Your session expired — please try again.',
       slowNotice: 'Still signing in — this is taking longer than usual. Check your connection, then retry.',
@@ -83,7 +82,7 @@ export const strings = {
   },
   wallet: {
     title: 'Your wallet',
-    subtitle: 'Cards you own. Changes sync across your devices.',
+    subtitle: 'Cards you own.',
     addTitle: 'Add a card',
     searchPlaceholder: 'Search Canadian cards…',
     add: 'Add',

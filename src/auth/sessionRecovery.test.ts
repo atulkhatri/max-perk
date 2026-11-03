@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isExpiredSessionError, isStaleCredentialError } from './AuthContext';
+import { isExpiredSessionError, isGuestDisabledError, isStaleCredentialError } from './AuthContext';
 
 function coded(code: string): Error {
   const err = new Error(`Firebase: Error (${code}).`) as Error & { code: string };
@@ -25,6 +25,13 @@ describe('isStaleCredentialError', () => {
     expect(isStaleCredentialError(new Error('network down'))).toBe(false);
     expect(isStaleCredentialError(null)).toBe(false);
     expect(isStaleCredentialError(undefined)).toBe(false);
+  });
+
+  it('flags both SDK codes for a disabled anonymous provider', () => {
+    expect(isGuestDisabledError(coded('auth/operation-not-allowed'))).toBe(true);
+    expect(isGuestDisabledError(coded('auth/admin-restricted-operation'))).toBe(true);
+    expect(isGuestDisabledError(coded('auth/wrong-password'))).toBe(false);
+    expect(isGuestDisabledError(null)).toBe(false);
   });
 
   it('limits the session-expired message to dead tokens', () => {

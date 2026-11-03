@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { usingEmulators } from '../firebase';
-import { routePath, useHashRoute, type Route } from '../router';
+import { routePath, useRoute, type Route } from '../router';
 import { strings } from '../strings';
 import { cn } from '../lib/utils';
 import { CheckIcon, LogoMark, SettingsIcon, SuggestIcon, WalletIcon } from './icons';
@@ -14,7 +14,7 @@ const TABS: { route: Route; label: string; icon: () => ReactElement }[] = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }): ReactElement {
-  const route = useHashRoute();
+  const route = useRoute();
   const { user } = useAuth();
 
   return (
@@ -24,7 +24,12 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
         <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center gap-8 px-10">
           <a href={routePath('check')} className="flex items-center gap-2.5 no-underline">
             <LogoMark />
-            <span className="font-display text-[19px] font-bold tracking-wide text-heading">{strings.app.name}</span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="font-display text-[19px] font-bold tracking-wide text-heading">
+                {strings.app.name}
+              </span>
+              <span className="truncate text-xs font-medium text-muted-foreground">{strings.app.tagline}</span>
+            </span>
           </a>
           {
             <nav aria-label={strings.app.name} className="flex items-center gap-1">

@@ -88,10 +88,21 @@ export function isExpiredSessionError(error: unknown): boolean {
   return code === 'auth/invalid-refresh-token' || code === 'auth/user-token-expired';
 }
 
+/**
+ * Firebase reports a disabled anonymous provider as auth/operation-not-allowed
+ * through some SDK paths and auth/admin-restricted-operation through others
+ * (ADMIN_ONLY_OPERATION from the REST backend).
+ */
+export function isGuestDisabledError(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation';
+}
+
 function errorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   if (code === 'auth/popup-blocked') return strings.auth.errors.popupBlocked;
   if (isExpiredSessionError(error)) return strings.auth.errors.sessionExpired;
+  if (isGuestDisabledError(error)) return strings.auth.errors.anonDisabled;
   return strings.auth.errors.generic;
 }
 
@@ -162,9 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           setGuestError(null);
         },
         (err: unknown) => {
-          const code = (err as { code?: string } | null)?.code;
           setGuestError(
-            code === 'auth/operation-not-allowed' ? strings.auth.errors.anonDisabled : errorMessage(err),
+            isGuestDisabledError(err) ? strings.auth.errors.anonDisabled : errorMessage(err),
           );
           anonAttempt.current = null;
         },
