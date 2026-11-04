@@ -5,9 +5,11 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { strings } from '../strings';
+import { askPickErrorMessage } from './errors';
 
 export interface ParsedLeg {
   merchantId?: string;
+  storeName?: string;
   earn: string;
   context: string;
   spendCAD?: number;
@@ -44,11 +46,16 @@ export function AskPickSection({ onInterpret, onManualFallback }: AskPickSection
         legs?: ParsedLeg[];
         interpretation?: string;
         clarification?: string;
+        error?: string;
       };
       if (data?.ok && Array.isArray(data.legs) && data.legs.length > 0) {
         onInterpret(data.legs, data.interpretation ?? '');
       } else if (data?.ok && data.clarification) {
         setNotice(data.clarification);
+      } else if (data && !data.ok && typeof data.error === 'string') {
+        // Named failure: explain briefly, manual form stays as fallback.
+        setNotice(askPickErrorMessage(data.error));
+        onManualFallback();
       } else {
         onManualFallback();
       }

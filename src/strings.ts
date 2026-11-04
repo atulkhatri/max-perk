@@ -94,6 +94,10 @@ export const strings = {
     editHint: 'Wrong? Edit the details below and check again.',
     manualFallback: 'Could not parse that - the form below works. Fill it in to rank.',
     clarificationTitle: 'One quick question',
+    errModel: 'The AI service did not answer. The form below works - fill it in to rank.',
+    errInvalid: 'The AI answer was not usable. The form below works - fill it in to rank.',
+    errDisabled: 'AI parsing is currently off. Use the form below to rank.',
+    errRateLimited: 'Too many AI requests today. Use the form below to rank.',
     basketWinner: 'Best single card for the whole basket',
   },
   wallet: {

@@ -117,12 +117,14 @@ export function CheckPage(): ReactElement {
 
   function handleInterpret(legs: ParsedLeg[], note: string): void {
     const mapped = legs.map((leg) => {
+      const tracked = leg.merchantId ? catalog.merchants.find((m) => m.id === leg.merchantId) : undefined;
       const merchant =
-        (leg.merchantId && catalog.merchants.find((m) => m.id === leg.merchantId)) ||
+        tracked ||
         resolvePurchaseMerchant(catalog, {
           earn: leg.earn as EarnCategory,
           context: leg.context as PurchaseContext,
-          customName: leg.merchantId ?? strings.categories[leg.earn as EarnCategory],
+          customName:
+            (leg.storeName && leg.storeName.trim()) || strings.categories[leg.earn as EarnCategory],
         });
       return { merchant, spend: leg.spendCAD };
     });

@@ -26,6 +26,8 @@ export type PurchaseContext = (typeof PURCHASE_CONTEXTS)[number];
 export interface PickLeg {
   /** Catalog merchant id when the text matched a tracked store. */
   merchantId?: string;
+  /** Store name as typed, used when the store is not tracked. */
+  storeName?: string;
   earn: EarnCategory;
   context: PurchaseContext;
   spendCAD?: number;
@@ -79,9 +81,12 @@ export function validatePickLegs(
       earn: leg['earn'] as EarnCategory,
       context: leg['context'] as PurchaseContext,
     };
-    if (typeof leg['merchantId'] === 'string') {
-      if (!ids.has(leg['merchantId'])) return null;
-      out.merchantId = leg['merchantId'];
+    if (typeof leg['merchantId'] === 'string' && leg['merchantId'].length > 0) {
+      // Unknown ids are dropped, not fatal: the leg still ranks by category.
+      if (ids.has(leg['merchantId'])) out.merchantId = leg['merchantId'];
+    }
+    if (typeof leg['storeName'] === 'string' && leg['storeName'].trim().length > 0) {
+      out.storeName = leg['storeName'].trim().slice(0, 80);
     }
     if (typeof leg['spendCAD'] === 'number') {
       if (!Number.isFinite(leg['spendCAD']) || leg['spendCAD'] <= 0 || leg['spendCAD'] > 1_000_000) {
@@ -110,7 +115,9 @@ export function buildSystemPrompt(merchants: MerchantRef[], dataAsOf: string): s
     '2. Split multi-category descriptions into one leg per category.',
     '3. merchantId must be an id from the store list below, or omitted when no store matches.',
     '4. spendCAD is a single number in CAD, or omitted when no amount is stated.',
-    '5. Set confidence below 0.7 and include a short clarification question when the text is ambiguous.',
+    '5. storeName is the store name as typed when it is NOT in the tracked list below; omit merchantId then.',
+    '6. There is no entertainment or general-shopping category: use other for those.',
+    '7. Set confidence below 0.7 and include a short clarification question when the text is ambiguous.',
     `Catalog snapshot: ${dataAsOf}. Tracked stores:`,
     list,
   ].join('\n');

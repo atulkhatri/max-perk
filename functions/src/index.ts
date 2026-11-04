@@ -2,6 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase-admin/app';
+import { logger } from 'firebase-functions/v2';
 import {
   AskPickRequest,
   normalizeText,
@@ -100,6 +101,7 @@ export const askPick = onCall(
                         },
                         context: { type: 'string', enum: ['general', 'electronics', 'carRental', 'hotels'] },
                         spendCAD: { type: 'number' },
+                        storeName: { type: 'string' },
                       },
                       required: ['earn', 'context'],
                     },
@@ -114,7 +116,11 @@ export const askPick = onCall(
           },
         }),
       });
-      if (!res.ok) return { ok: false, error: 'model_error' } as const;
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        logger.warn('askPick model non-200', { status: res.status, body: errText.slice(0, 300) });
+        return { ok: false, error: 'model_error' } as const;
+      }
       const body = (await res.json()) as {
         choices?: { message?: { content?: string } }[];
       };
@@ -123,9 +129,13 @@ export const askPick = onCall(
       try {
         parsed = JSON.parse(content);
       } catch {
+        logger.warn('askPick model output unparseable', { preview: content.slice(0, 300) });
         return { ok: false, error: 'invalid' } as const;
       }
       const checked = validatePickLegs(parsed, merchants);
+      if (!checked) {
+        logger.info('askPick validation rejected output');
+      }
       if (!checked || 'clarification' in checked) {
         return {
           ok: true,
@@ -137,8 +147,9 @@ export const askPick = onCall(
         } as const;
       }
       return { ok: true, legs: checked.legs, interpretation: checked.interpretation } as const;
-    } catch {
+    } catch (err) {
       // Timeout, network, bad key: the client falls back to the manual form.
+      logger.warn('askPick request failed', { message: err instanceof Error ? err.message : String(err) });
       return { ok: false, error: 'model_error' } as const;
     } finally {
       clearTimeout(timer);

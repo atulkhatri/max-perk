@@ -37,13 +37,22 @@ describe('validatePickLegs', () => {
     expect(out && 'legs' in out && out.legs).toHaveLength(2);
   });
 
-  it('rejects unknown merchant ids, bad enums, and absurd spend', () => {
-    expect(
-      validatePickLegs(
-        { legs: [{ merchantId: 'nope', earn: 'grocery', context: 'general' }], interpretation: 'x', confidence: 0.9 },
-        merchants,
-      ),
-    ).toBeNull();
+  it('drops unknown merchant ids but keeps the leg, and keeps storeName', () => {
+    const out = validatePickLegs(
+      {
+        legs: [{ merchantId: 'nope', storeName: 'Cineplex', earn: 'other', context: 'general', spendCAD: 100 }],
+        interpretation: 'Movies at Cineplex, $100',
+        confidence: 0.9,
+      },
+      merchants,
+    );
+    expect(out).toEqual({
+      legs: [{ storeName: 'Cineplex', earn: 'other', context: 'general', spendCAD: 100 }],
+      interpretation: 'Movies at Cineplex, $100',
+    });
+  });
+
+  it('rejects bad enums and absurd spend', () => {
     expect(
       validatePickLegs(
         { legs: [{ earn: 'streaming', context: 'general' }], interpretation: 'x', confidence: 0.9 },
