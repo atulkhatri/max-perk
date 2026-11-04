@@ -49,7 +49,9 @@ async function attempt({ name, method, url, token: tok, body, expect }) {
   // Deny must be a rules 403 for writes/creates; a 404 on a missing doc also
   // proves no leak for reads, so reads accept either. A bare >=400 check
   // would let a broken (always-404) ruleset pass.
-  const ok = expect === 'allow' ? res.status < 300 : method === 'GET' ? (res.status === 403 || res.status === 404) : res.status === 403;
+  // 'readable' proves a get-rule allows: denied reads fail with 403 even when
+  // the doc does not exist, so both 200 (seeded) and 404 (unseeded) pass.
+  const ok = expect === 'allow' ? res.status < 300 : expect === 'readable' ? res.status !== 403 : method === 'GET' ? (res.status === 403 || res.status === 404) : res.status === 403;
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name} (want ${expect}, got ${res.status})`);
   return ok;
 }
@@ -78,6 +80,10 @@ const seedId = created.status < 300 ? created.headers.get('location')?.split('/'
 
 const loyalty51 = Array.from({ length: 51 }, (_, i) => `prog-${i}`);
 const cases = [
+  // feature flags: world-readable get (404, not 403, on the unseeded doc), no client writes
+  { name: 'config askPick anon get allowed', method: 'GET', url: `${DB}/config/askPick`, token: null, expect: 'readable' },
+  { name: 'config askPick guest get allowed', method: 'GET', url: `${DB}/config/askPick`, token: anon.idToken, expect: 'readable' },
+  { name: 'config askPick user write denied', method: 'PATCH', url: `${DB}/config/askPick`, token: userA.idToken, body: { fields: { enabled: F(false) } }, expect: 'deny' },
   // feedback creates
   { name: 'feedback create anon denied', method: 'POST', url: `${DB}/feedback`, token: anon.idToken, body: { fields: { kind: F('bug'), text: F('Anonymous spam attempt here'), uid: F(anon.localId), status: F('new') } }, expect: 'deny' },
   { name: 'feedback create unauth denied', method: 'POST', url: `${DB}/feedback`, token: null, body: { fields: { kind: F('bug'), text: F('No-auth spam attempt here!'), uid: F('x'), status: F('new') } }, expect: 'deny' },

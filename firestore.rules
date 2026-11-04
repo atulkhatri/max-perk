@@ -11,6 +11,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    // Feature flags: world-readable, console-only writes (rules reject all
+    // client writes). The ask-pick entry point reads config/askPick to decide
+    // whether the AI section renders; deleting or disabling it is one console
+    // edit, no deploy.
+    match /config/askPick {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+
     // Each user reads/writes only their own wallet + preferences. Field and
     // size guards hold because client-side parsing is REST-bypassable.
     match /users/{userId} {

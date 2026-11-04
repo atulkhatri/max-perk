@@ -20,7 +20,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 
 ## Core user flows (responsive web app, mobile-first UX)
 1. **Sign up & wallet:** user creates an account and adds the credit cards they own (manual entry); the wallet is stored online, synced across devices, and editable anytime.
-2. **Best-card check:** user enters store + purchase category (e.g., "Loblaws — grocery"), optionally with a spend amount, and gets a ranked answer: which owned card to use, expected points, and estimated dollar value.
+2. **Best-card check:** user enters store + purchase category (e.g., "Loblaws — grocery"), optionally with a spend amount, and gets a ranked answer: which owned card to use, expected points, and estimated dollar value. An optional 'Ask in your own words' box above the form sends the typed sentence to Meta's Model API (Cloud Function ask-pick, intent only: store/category/spend); the deterministic engine still ranks. Kill switch: config/askPick {enabled:false} hides the box with no deploy.
 3. **Store-card comparison:** if a dedicated store card exists for that merchant, the comparison includes it and clearly shows whether an owned card beats it or not.
 4. **Loyalty nudge:** if a store loyalty program (e.g., PC Optimum at Loblaws-banner stores) can add rewards on top, the app suggests signing up and factors the stacking into guidance.
 5. **Perk-aware check:** for purchases where benefits matter more than points — electronics (extended warranty), car rentals (rental car insurance), hotel stays (e.g., Marriott perks or travel coverage) — the answer highlights the best owned card for coverage and calls out key conditions (e.g., must pay in full with the card).
