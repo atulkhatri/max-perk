@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactElement } from 'react';
-import { BadgeCheck, Minus, Plus } from 'lucide-react';
+import { BadgeCheck, Minus, Plus, X } from 'lucide-react';
 import { formatCAD } from '../format';
 import { useCatalog } from '../data/catalogStore';
 import { strings } from '../strings';
@@ -27,8 +27,6 @@ export function WalletPage(): ReactElement {
 
   const trimmedQuery = query.trim();
   const owned = filtered.filter((c) => cardIds.includes(c.id));
-  // Unowned cards stay hidden until the user searches: type to find and add.
-  const others = trimmedQuery ? filtered.filter((c) => !cardIds.includes(c.id)) : [];
 
   if (loading || catalogLoading)
     return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
@@ -53,81 +51,129 @@ export function WalletPage(): ReactElement {
           {strings.wallet.addTitle}{' '}
           <span className="font-normal text-muted-foreground">{strings.wallet.searchNote}</span>
         </Label>
-        <Input
-          id="wallet-search"
-          type="text"
-          autoComplete="off"
-          placeholder={strings.wallet.searchPlaceholder}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="relative">
+          <Input
+            id="wallet-search"
+            type="text"
+            autoComplete="off"
+            placeholder={strings.wallet.searchPlaceholder}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setQuery('');
+            }}
+            className={query ? 'pr-10' : undefined}
+          />
+          {query && (
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              aria-label={strings.wallet.clearSearch}
+              onClick={() => setQuery('')}
+              className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 p-0"
+            >
+              <X />
+            </Button>
+          )}
+        </div>
       </div>
 
-      {trimmedQuery && owned.length === 0 && others.length === 0 && (
-        <p className="text-sm text-muted-foreground">{strings.wallet.noResults}</p>
-      )}
-
-      {cardIds.length === 0 && (
-        <Card className="p-[18px]">
-          <h2 className="text-[17px] font-bold">{strings.wallet.emptyTitle}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{strings.wallet.emptyBody}</p>
-        </Card>
-      )}
-
-      {owned.length > 0 && (
+      {trimmedQuery ? (
         <>
-          <h2 className="mt-2.5 text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
-            {strings.wallet.title} ({owned.length})
-          </h2>
-          {owned.map((card) => (
-            <Card key={card.id} className="border-transparent bg-winner p-4 text-winner-foreground shadow-md">
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="flex items-center gap-1.5 text-[16px] font-bold tracking-tight">
-                    <BadgeCheck className="size-4 flex-none" aria-hidden="true" />
-                    {card.name}
-                  </div>
-                  <div className="mt-0.5 text-[13px] opacity-80">
-                    {card.issuer} · {card.network} · {feeLabel(card.annualFeeCAD)}
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() => void removeCard(card.id)}
-                  className="border-winner-foreground/40 bg-transparent text-winner-foreground hover:bg-winner-foreground/10 hover:text-winner-foreground"
-                >
-                  <Minus />
-                  {strings.wallet.remove}
-                </Button>
-              </div>
-            </Card>
-          ))}
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{strings.wallet.noResults}</p>
+          ) : (
+            <>
+              <h2 className="mt-2.5 text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
+                {strings.wallet.resultsTitle} ({filtered.length})
+              </h2>
+              {filtered.map((card) =>
+                cardIds.includes(card.id) ? (
+                  <Card key={card.id} className="border-transparent bg-winner p-4 text-winner-foreground shadow-md">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[16px] font-bold tracking-tight">
+                          <BadgeCheck className="size-4 flex-none" aria-hidden="true" />
+                          {card.name}
+                        </div>
+                        <div className="mt-0.5 text-[13px] opacity-80">
+                          {card.issuer} · {card.network} · {feeLabel(card.annualFeeCAD)}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => void removeCard(card.id)}
+                        className="border-winner-foreground/40 bg-transparent text-winner-foreground hover:bg-winner-foreground/10 hover:text-winner-foreground"
+                      >
+                        <Minus />
+                        {strings.wallet.remove}
+                      </Button>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card key={card.id} className="p-4">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div>
+                        <div className="text-[16px] font-bold tracking-tight">{card.name}</div>
+                        <div className="mt-0.5 text-[13px] text-muted-foreground">
+                          {card.issuer} · {card.network} · {feeLabel(card.annualFeeCAD)}
+                        </div>
+                      </div>
+                      <Button variant="secondary" size="sm" type="button" onClick={() => void addCard(card.id)}>
+                        <Plus />
+                        {strings.wallet.add}
+                      </Button>
+                    </div>
+                  </Card>
+                ),
+              )}
+            </>
+          )}
         </>
-      )}
-
-      {others.length > 0 && (
+      ) : (
         <>
-          <h2 className="mt-2.5 text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
-            {strings.wallet.addTitle}
-          </h2>
-          {others.map((card) => (
-            <Card key={card.id} className="p-4">
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="text-[16px] font-bold tracking-tight">{card.name}</div>
-                  <div className="mt-0.5 text-[13px] text-muted-foreground">
-                    {card.issuer} · {card.network} · {feeLabel(card.annualFeeCAD)}
-                  </div>
-                </div>
-                <Button variant="secondary" size="sm" type="button" onClick={() => void addCard(card.id)}>
-                  <Plus />
-                  {strings.wallet.add}
-                </Button>
-              </div>
+          {cardIds.length === 0 && (
+            <Card className="p-[18px]">
+              <h2 className="text-[17px] font-bold">{strings.wallet.emptyTitle}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{strings.wallet.emptyBody}</p>
             </Card>
-          ))}
+          )}
+
+          {owned.length > 0 && (
+            <>
+              <h2 className="mt-2.5 text-[13px] font-bold tracking-wide text-muted-foreground uppercase">
+                {strings.wallet.title} ({owned.length})
+              </h2>
+              {owned.map((card) => (
+                <Card key={card.id} className="border-transparent bg-winner p-4 text-winner-foreground shadow-md">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-[16px] font-bold tracking-tight">
+                        <BadgeCheck className="size-4 flex-none" aria-hidden="true" />
+                        {card.name}
+                      </div>
+                      <div className="mt-0.5 text-[13px] opacity-80">
+                        {card.issuer} · {card.network} · {feeLabel(card.annualFeeCAD)}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      onClick={() => void removeCard(card.id)}
+                      className="border-winner-foreground/40 bg-transparent text-winner-foreground hover:bg-winner-foreground/10 hover:text-winner-foreground"
+                    >
+                      <Minus />
+                      {strings.wallet.remove}
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </>
+          )}
         </>
       )}
     </div>

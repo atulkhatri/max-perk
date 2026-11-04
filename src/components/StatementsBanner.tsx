@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { Lock } from 'lucide-react';
 import { routePath } from '../router';
 import { strings } from '../strings';
 import { Button } from './ui/button';
@@ -13,6 +14,10 @@ export function StatementsBanner(): ReactElement {
         <div>
           <h2 className="text-[17px] font-bold">{strings.suggest.statementsBannerTitle}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{strings.suggest.statementsBannerBody}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <Lock className="size-3.5 flex-none" aria-hidden="true" />
+            {strings.suggest.statementsBannerPrivacy}
+          </p>
         </div>
         <Button size="sm" asChild className="flex-none sm:ml-auto">
           <a href={routePath('statements')} className="no-underline">

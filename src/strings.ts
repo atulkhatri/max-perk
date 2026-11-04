@@ -88,7 +88,9 @@ export const strings = {
     searchNote: '(supports all major Canadian cards - more countries coming soon)',
     addTitle: 'Add a card',
     searchPlaceholder: 'Search Canadian cards…',
+    clearSearch: 'Clear search',
     noResults: 'No cards match that search.',
+    resultsTitle: 'Results',
     add: 'Add',
     remove: 'Remove',
     emptyTitle: 'Your wallet is empty',
@@ -143,6 +145,7 @@ export const strings = {
     spendCancel: 'Cancel',
     statementsBannerTitle: 'See picks from your real spending',
     statementsBannerBody: 'Upload bank statements and compare cards on what you actually buy.',
+    statementsBannerPrivacy: 'Private by design: your files never leave this browser.',
     statementsBannerAction: 'Upload statements',
   },
   report: {
