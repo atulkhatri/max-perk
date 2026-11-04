@@ -59,6 +59,8 @@ interface SharedCatalog {
   listeners: Set<(state: CatalogState) => void>;
   stop: (() => void) | null;
   started: boolean;
+  /** Incremented per fetch; only the newest fetch may publish. */
+  generation: number;
 }
 
 let shared: SharedCatalog | null = null;
@@ -71,6 +73,7 @@ function getShared(): SharedCatalog {
       listeners: new Set(),
       stop: null,
       started: false,
+      generation: 0,
     };
   }
   return shared;
@@ -153,13 +156,21 @@ async function startShared(): Promise<void> {
       publish({ ...getShared().state, loading: false });
       return;
     }
+    const fetchGen = ++getShared().generation;
     try {
       const { catalog, meta } = await fetchRemoteCatalog(firestore);
       writeFreshAt(Date.now());
-      if (getShared().started) publish({ catalog, source: 'live', meta, loading: false });
+      // A newer fetch (or a stop) superseded this one: drop the stale result.
+      if (getShared().started && getShared().generation === fetchGen) {
+        publish({ catalog, source: 'live', meta, loading: false });
+      }
     } catch {
-      if (getShared().started) publish({ catalog: bundledCatalog, source: 'bundled', meta: null, loading: false });
-      return;
+      // Keep the meta the staleness gate just learned instead of erasing it,
+      // and still install the live listener below so a later sync recovers
+      // without a reload.
+      if (getShared().started && getShared().generation === fetchGen) {
+        publish({ catalog: bundledCatalog, source: 'bundled', meta: getShared().state.meta, loading: false });
+      }
     }
     // Meta-only listener: re-fetch collections only when a sync changes them.
     try {
@@ -168,6 +179,7 @@ async function startShared(): Promise<void> {
         doc(firestore, CATALOG_DOC_PATH),
         (snap) => {
           void (async () => {
+            const gen = ++getShared().generation;
             try {
               if (!snap.exists()) return;
               const meta = parseMeta(snap.data());
@@ -175,7 +187,10 @@ async function startShared(): Promise<void> {
               if (!current.started || meta.dataAsOf === current.state.catalog.dataAsOf) return;
               const { catalog } = await fetchRemoteCatalog(firestore);
               writeFreshAt(Date.now());
-              if (getShared().started) publish({ catalog, source: 'live', meta, loading: false });
+              // Last finisher no longer wins: only the newest fetch publishes.
+              if (getShared().started && getShared().generation === gen) {
+                publish({ catalog, source: 'live', meta, loading: false });
+              }
             } catch {
               // Keep the last good state.
             }
@@ -275,9 +290,17 @@ export function useCatalog(): CatalogState {
     return () => {
       current.listeners.delete(setState);
       current.refs -= 1;
-      // Keep the last good state (and the single meta-doc listener) across
-      // navigation: remounts reuse the cache with zero reads instead of
-      // refetching every collection on each tab visit.
+      if (current.refs <= 0) {
+        // Last consumer gone: actually stop the meta listener (the ref-count
+        // contract in the header). State is kept, so a remount reuses the
+        // cache and startShared re-installs the listener with zero refetch
+        // when the staleness gate is still fresh.
+        current.refs = 0;
+        current.generation += 1;
+        current.stop?.();
+        current.stop = null;
+        current.started = false;
+      }
     };
   }, []);
 

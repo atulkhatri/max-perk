@@ -1,18 +1,18 @@
-name: Deploy to Firebase Hosting on PR
+name: Build and test on PR
 on: pull_request
+permissions:
+  contents: read
 jobs:
-  build_and_preview:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24"
-      - run: npm ci && npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CARDOFFERS_5E586 }}
-          expires: 7d
-          projectId: cardoffers-5e586
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # No preview deploy: previews were built with the committed production
+      # env and wrote/read against the live backend. Re-enable previews only
+      # against a staging project (see docs/IMPLEMENTATION_PLAN.md).

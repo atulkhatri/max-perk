@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { adoptGuestSnapshot, readGuestSnapshot } from './AuthContext';
+import { adoptGuestSnapshot, isAccountLinkCollision, readGuestSnapshot } from './AuthContext';
 import type { WalletRepository, WalletSnapshot } from '../wallet/repository';
 
 const GUEST = 'guest-uid';
@@ -102,5 +102,15 @@ describe('guest wallet upgrade ordering', () => {
       mode: 'kept',
     });
     expect(merge).not.toHaveBeenCalled();
+  });
+});
+
+describe('account link collision (Google after email signup)', () => {
+  it('recognizes every collision code Firebase reports for an existing account', () => {
+    for (const code of ['auth/email-already-in-use', 'auth/credential-already-in-use', 'auth/account-exists-with-different-credential']) {
+      expect(isAccountLinkCollision(Object.assign(new Error(code), { code }))).toBe(true);
+    }
+    expect(isAccountLinkCollision(Object.assign(new Error('x'), { code: 'auth/popup-closed-by-user' }))).toBe(false);
+    expect(isAccountLinkCollision(null)).toBe(false);
   });
 });

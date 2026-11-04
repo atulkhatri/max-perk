@@ -43,7 +43,7 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 10
         && request.resource.data.text.size() <= 2000
-        && ('contact' in request.resource.data
+        && ('contact' in request.resource.data && request.resource.data.contact == request.auth.token.email
           && (request.resource.data.contact is string
             && request.resource.data.contact.size() <= 254
             && request.resource.data.contact.matches('.*@.*\\..*')))
@@ -62,7 +62,7 @@ service cloud.firestore {
         && request.resource.data.cardId is string
         && request.resource.data.cardId.size() >= 1
         && request.resource.data.cardId.size() <= 128
-        && ('contact' in request.resource.data
+        && ('contact' in request.resource.data && request.resource.data.contact == request.auth.token.email
           && (request.resource.data.contact is string
             && request.resource.data.contact.size() <= 254
             && request.resource.data.contact.matches('.*@.*\\..*')))

@@ -42,8 +42,8 @@ function printHelp() {
   --data=PATH          catalog JSON (default: src/data/seeds/sample-catalog.json)
 
 Production auth resolves automatically, first match wins:
-  1. --access-token=T (or $FIRESTORE_ACCESS_TOKEN)
-  2. --service-account=path.json (or $GOOGLE_APPLICATION_CREDENTIALS)
+  1. --service-account=path.json (or $GOOGLE_APPLICATION_CREDENTIALS) - preferred, scoped
+  2. --access-token=T (or $FIRESTORE_ACCESS_TOKEN) - discouraged: lands in shell history
   3. your Firebase CLI login (\`firebase login\`) — no key file needed.
 Key files are never committed: store them OUTSIDE the repo.`);
 }
@@ -207,11 +207,15 @@ async function main() {
   if (!args.emulator && !args.confirm) {
     throw new Error('production write needs --confirm (or use --emulator / --dry-run)');
   }
-  let token = args.emulator ? null : (args.accessToken ?? null);
+  let token = null;
+  if (!args.emulator && serviceAccount) {
+    token = await serviceAccountToken(serviceAccount);
+  } else if (!args.emulator && args.accessToken) {
+    console.error('warning: using a raw access token (visible in shell history/process list); prefer --service-account');
+    token = args.accessToken;
+  }
   if (!args.emulator && !token) {
-    if (serviceAccount) {
-      token = await serviceAccountToken(serviceAccount);
-    } else {
+    {
       try {
         token = await firebaseLoginAccessToken();
       } catch (err) {

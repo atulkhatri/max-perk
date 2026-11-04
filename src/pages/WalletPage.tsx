@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
 export function WalletPage(): ReactElement {
-  const { cardIds, loading, addCard, removeCard } = useWallet();
+  const { cardIds, loading, error, addCard, removeCard } = useWallet();
   const { catalog, loading: catalogLoading } = useCatalog();
   const [query, setQuery] = useState('');
 
@@ -40,6 +40,11 @@ export function WalletPage(): ReactElement {
         {strings.wallet.title}
       </h1>
       <p className="-mt-2 text-sm text-muted-foreground">{strings.wallet.subtitle}</p>
+      {error && (
+        <p role="alert" className="rounded-md border border-border bg-muted p-3 text-sm">
+          {error}
+        </p>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="wallet-search">

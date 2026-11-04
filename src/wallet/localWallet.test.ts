@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clearLocalWallet,
+  clearLocalWalletIfMatches,
   isEmptySnapshot,
   loadLocalWallet,
   saveLocalWallet,
@@ -56,5 +57,18 @@ describe('local wallet (signed-out mode)', () => {
     expect(isEmptySnapshot({ cardIds: [], loyaltyUsed: [] })).toBe(true);
     expect(isEmptySnapshot({ cardIds: ['tangerine'], loyaltyUsed: [] })).toBe(false);
     expect(isEmptySnapshot({ cardIds: [], loyaltyUsed: ['moi'] })).toBe(false);
+  });
+});
+
+describe('clearLocalWalletIfMatches', () => {
+  it('clears only the exact merged snapshot, preserving later edits', () => {
+    const store = memoryStore();
+    const merged = { cardIds: ['tangerine'], loyaltyUsed: [] as string[] };
+    saveLocalWallet(merged, store);
+    saveLocalWallet({ cardIds: ['tangerine', 'amex-cobalt'], loyaltyUsed: [] }, store);
+    clearLocalWalletIfMatches(merged, store);
+    expect(loadLocalWallet(store).cardIds).toEqual(['tangerine', 'amex-cobalt']);
+    clearLocalWalletIfMatches({ cardIds: ['tangerine', 'amex-cobalt'], loyaltyUsed: [] }, store);
+    expect(loadLocalWallet(store)).toEqual({ cardIds: [], loyaltyUsed: [] });
   });
 });

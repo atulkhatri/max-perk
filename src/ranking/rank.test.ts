@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog, validateCatalog } from '../data/seeds/catalog';
 import type { BankOfferSeed, CardSeed, Catalog, MerchantSeed, ProgramSeed } from '../data/types';
-import { annualValue, programCpp, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestFromStatements, suggestNewCards, transactionCoverageMonths, valueOfTransactions } from './rank';
+import { annualValue, netAnnualValue, programCpp, rankForCheck, rankForPurchase, resolvePurchaseMerchant, suggestFromStatements, suggestNewCards, transactionCoverageMonths, valueOfTransactions } from './rank';
 
 function fixtureCard(overrides: Partial<CardSeed> & { id: string }): CardSeed {
   return {
@@ -387,6 +387,30 @@ describe('new-card suggester', () => {
     expect(transactionCoverageMonths([])).toBe(1);
   });
 
+  it('never recommends a card whose gross gain is below its annual fee', () => {
+    const cat = fixtureCatalog([
+      fixtureCard({ id: 'owned-flat', earn: { other: 1 } }),
+      fixtureCard({ id: 'fee-trap', earn: { other: 1.04 }, annualFeeCAD: 120 }),
+      fixtureCard({ id: 'fee-worth', earn: { other: 5 }, annualFeeCAD: 120 }),
+    ]);
+    const out = suggestNewCards(cat, ['owned-flat']);
+    expect(out.some((s) => s.card.id === 'fee-trap')).toBe(false);
+    expect(out.some((s) => s.card.id === 'fee-worth')).toBe(true);
+    const worth = out.find((s) => s.card.id === 'fee-worth')!;
+    expect(worth.incrementalCAD).toBeCloseTo(netAnnualValue(cat, worth.card) - netAnnualValue(cat, cat.cards[0]), 5);
+  });
+
+  it('annualizes by elapsed days, not calendar-month buckets', () => {
+    const cat = fixtureCatalog([fixtureCard({ id: 'flat', earn: { other: 1 } })]);
+    const boundary = valueOfTransactions(cat, cat.cards[0], [
+      { date: '2026-01-31', amountCAD: 100, category: 'other' as const },
+      { date: '2026-02-01', amountCAD: 100, category: 'other' as const },
+    ]);
+    const oneMonth = valueOfTransactions(cat, cat.cards[0], [
+      { date: '2026-01-15', amountCAD: 200, category: 'other' as const },
+    ]);
+    expect(boundary).toBeCloseTo(oneMonth, 5);
+  });
   it('re-ranks with a custom spend profile', () => {
     const cat = fixtureCatalog([
       fixtureCard({ id: 'owned-flat', earn: { other: 1 } }),

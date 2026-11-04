@@ -17,7 +17,11 @@ export interface WalletSnapshot {
 }
 
 export interface WalletRepository {
-  subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Promise<Unsubscribe>;
+  subscribe(
+    uid: string,
+    onChange: (snapshot: WalletSnapshot) => void,
+    onError?: (error: unknown) => void,
+  ): Promise<Unsubscribe>;
   addCard(uid: string, cardId: string): Promise<void>;
   removeCard(uid: string, cardId: string): Promise<void>;
   setLoyaltyUsed(uid: string, loyaltyIds: string[]): Promise<void>;
@@ -87,7 +91,11 @@ export class FirestoreWalletRepository implements WalletRepository {
     this.db = db;
   }
 
-  async subscribe(uid: string, onChange: (snapshot: WalletSnapshot) => void): Promise<Unsubscribe> {
+  async subscribe(
+    uid: string,
+    onChange: (snapshot: WalletSnapshot) => void,
+    onError?: (error: unknown) => void,
+  ): Promise<Unsubscribe> {
     const [{ collection, doc, onSnapshot }, firestore] = await Promise.all([fx(), this.db]);
     let cardIds: string[] = [];
     let loyaltyUsed: string[] = [];
@@ -110,9 +118,10 @@ export class FirestoreWalletRepository implements WalletRepository {
         gotUser = true;
         emit();
       },
-      () => {
-        gotUser = true;
-        emit();
+      (err) => {
+        // A read error is not an empty wallet: report it and let the caller
+        // keep its last good snapshot instead of caching emptiness.
+        onError?.(err);
       },
     );
     const unsubWallet = onSnapshot(
@@ -122,9 +131,8 @@ export class FirestoreWalletRepository implements WalletRepository {
         gotWallet = true;
         emit();
       },
-      () => {
-        gotWallet = true;
-        emit();
+      (err) => {
+        onError?.(err);
       },
     );
     return () => {

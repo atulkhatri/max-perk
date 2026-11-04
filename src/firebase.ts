@@ -4,6 +4,23 @@ import type { Firestore } from 'firebase/firestore';
 import { config } from './config';
 
 export const app = initializeApp(config.firebase);
+
+// App Check (abuse protection for the public web key): initialized only when
+// a reCAPTCHA v3 site key is configured, so local/emulator builds without
+// one keep working. Enforcement is switched on in the Firebase console;
+// without it this only attests, it does not block.
+if (config.appCheckSiteKey) {
+  void import('firebase/app-check')
+    .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(config.appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    })
+    .catch(() => {
+      // App Check is defense in depth; never block the app on it.
+    });
+}
 export const auth = getAuth(app);
 export const usingEmulators = config.useEmulators;
 

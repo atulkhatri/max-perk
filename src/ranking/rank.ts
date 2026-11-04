@@ -313,6 +313,15 @@ export function activeSpendProfile(
   }));
 }
 
+/** Annual value net of the annual fee: what the card actually leaves you. */
+export function netAnnualValue(
+  catalog: Catalog,
+  card: CardSeed,
+  profile: { category: EarnCategory; monthlyCAD: number }[] = DEFAULT_SPEND_PROFILE,
+): number {
+  return annualValue(catalog, card, profile) - card.annualFeeCAD;
+}
+
 export function suggestNewCards(
   catalog: Catalog,
   ownedCardIds: string[],
@@ -324,6 +333,7 @@ export function suggestNewCards(
   const ownedSegments = new Set(owned.map((c) => c.segment));
   const profile = activeSpendProfile(spendProfile);
   const bestOwnedAnnualCAD = Math.max(...owned.map((c) => annualValue(catalog, c, profile)));
+  const bestOwnedNetCAD = Math.max(...owned.map((c) => netAnnualValue(catalog, c, profile)));
   return catalog.cards
     .filter((c) => !ownedCardIds.includes(c.id))
     // Debit cards earn nothing to suggest; business cards only make sense for
@@ -331,7 +341,11 @@ export function suggestNewCards(
     .filter((c) => c.kind === 'credit' && ownedSegments.has(c.segment))
     .map((card) => {
       const annualValueCAD = annualValue(catalog, card, profile);
-      return { card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD: annualValueCAD - bestOwnedAnnualCAD };
+      // Threshold, ranking and the displayed "extra value" are all net of
+      // fees on both sides: a +$60-gross card with a $120 fee must never be
+      // recommended over a fee-free owned card.
+      const incrementalCAD = annualValueCAD - card.annualFeeCAD - bestOwnedNetCAD;
+      return { card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD };
     })
     .filter((s) => s.incrementalCAD >= thresholdCAD)
     .sort((a, b) => b.incrementalCAD - a.incrementalCAD)
@@ -386,7 +400,11 @@ export function valueOfTransactions(catalog: Catalog, card: CardSeed, txns: Stat
     totals.set(t.category, (totals.get(t.category) ?? 0) + t.amountCAD);
   }
   const months = Math.max(1, monthly.size);
-  const days = Number.isFinite(minDay) ? Math.max(1, Math.round((maxDay - minDay) / 86400000) + 1) : months * 30;
+  const elapsedDays = Number.isFinite(minDay) ? Math.max(1, Math.round((maxDay - minDay) / 86400000) + 1) : months * 30;
+  // Annualize by elapsed days, not calendar-month buckets: Jan 31 to Feb 1
+  // spans 2 days, not 2 months. A floor of one average month keeps a single
+  // day of transactions from annualizing to an absurd multiple.
+  const days = Math.max(elapsedDays, 365 / 12);
   let points = overridePoints;
   for (const bucket of monthly.values()) {
     for (const [category, spend] of bucket) {
@@ -404,7 +422,7 @@ export function valueOfTransactions(catalog: Catalog, card: CardSeed, txns: Stat
       points -= Math.max(0, total - scaled) * (rate(category) - cap.rateAfter);
     }
   }
-  return ((Math.max(0, points) / months) * 12 * cpp) / 100;
+  return ((Math.max(0, points) * 365) / days) * (cpp / 100);
 }
 
 export interface StatementGroup {
@@ -439,7 +457,8 @@ export function suggestFromStatements(
     const bestOwnedAnnualCAD = valueOfTransactions(catalog, ownedCard, group.transactions);
     for (const card of candidates) {
       const annualValueCAD = valueOfTransactions(catalog, card, group.transactions);
-      const incrementalCAD = annualValueCAD - bestOwnedAnnualCAD;
+      // Net of fees on both sides, same as suggestNewCards.
+      const incrementalCAD = annualValueCAD - card.annualFeeCAD - (bestOwnedAnnualCAD - ownedCard.annualFeeCAD);
       if (incrementalCAD >= thresholdCAD) {
         out.push({ card, annualValueCAD, bestOwnedAnnualCAD, incrementalCAD, forCardId: group.cardId });
       }

@@ -31,7 +31,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 ## Functional requirements
 ### Accounts
 - Sign up and sign in (Firebase Authentication, per decision), plus password reset by email.
-- Anonymous guest sessions with no sign-in wall; upgrading links in place for new credentials or union-merges the guest wallet into an existing account. Settings discloses browser-local guest limits. Guest-entry failures show a retryable notice (never a wall) with the app usable underneath; stale guest errors are cleared on success, retry, recovery, and sign-out so they can never pin the login form.
+- Anonymous guest sessions with no sign-in wall; upgrading links in place for new credentials or union-merges the guest wallet into an existing account. If the provider email already belongs to a permanent account (e.g. email/password signup first, then Google), linking reports email-already-in-use even with same-email account linking enabled in the console (that setting covers fresh sign-ins, not anonymous-account linking), so the app snapshots the guest wallet, signs into the existing account, and merges. Settings discloses browser-local guest limits. Guest-entry failures show a retryable notice (never a wall) with the app usable underneath; stale guest errors are cleared on success, retry, recovery, and sign-out so they can never pin the login form.
 - Card wallet stored online and synced across a user's devices.
 
 ### Card wallet
@@ -63,7 +63,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 ### Upgrade recommender
 - Compare owned cards against notable unowned Canadian cards for the user's categories and spend ("Upgrades" tab, titled "Cards that could earn you more").
 - Suggest a card only when it would meaningfully beat owned cards (currently $50/year over the best owned card); each pick shows Total value/year first and Extra vs your best/year second.
-- The monthly spend panel shows a compact total by default with an Edit button that expands the per-category fields; Save changes writes once and Reset to defaults clears to catalog defaults. Fee-adjusted value (earn minus annual fee) shows as display-only small text since fees are sometimes waived; the best owned card is highlighted as the competition. The real-spending statement banner sits at the bottom of the page.
+- The monthly spend panel shows a compact total by default with an Edit button that expands the per-category fields; Save changes writes once and Reset to defaults clears to catalog defaults. Suggestions are ranked, thresholded, and shown as extra value net of annual fees on both sides (candidate minus its fee, versus best owned minus its fee), so a card whose gross gain is below its fee is never recommended; the fee-adjusted line still displays for context since fees are sometimes waived. The real-spending statement banner sits at the bottom of the page.
 - Users can upload bank statements (PDF/CSV, up to 24 files) for comparison against their real categorized spending; files never leave the browser and results are session-only.
 - Signed-in users can send feedback (feature request, bug, card-data correction) from Settings; the account email is attached automatically and the form warns against personal details. Any card's Details popup has a flag-icon Report button (confirmation first) that files the card into cardReports for curator review. Anti-spam: auth required, honeypot field, 5/day + 30s client limits, required email shape in rules. Submit failures show a send-specific error (never a sign-in message).
 - No in-app applications (out of scope); suggestion only.
@@ -106,7 +106,7 @@ Help Canadian shoppers instantly know which credit card they own gives the best 
 - New-card recommender: which cards are eligible, and what "meaningfully beats" threshold triggers a suggestion? (Decided: unowned credit cards in owned segments; $50/year over the best owned card.)
 - Reminders: how are they triggered (user-entered trip/purchase vs. automatic), and through which channels?
 - Bank offers: which offers are tracked in v1 and how is that data sourced and refreshed?
-- Should annual fees factor into recommendations (e.g., net-value view) in v1 or later? (Decided: display-only fee-adjusted line; ranking math unchanged since fees are sometimes waived.)
+- Should annual fees factor into recommendations (e.g., net-value view) in v1 or later? (Updated 2026-11-03: suggestions now rank and threshold on net-of-fee value on both sides; the fee-adjusted line remains as display context since fees are sometimes waived.)
 - Signup guidance depth: link-out only, or in-app steps for major loyalty programs?
 
 ## Review & acceptance

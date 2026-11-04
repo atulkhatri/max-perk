@@ -3,18 +3,26 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: read
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24"
-      - run: npm ci && npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CARDOFFERS_5E586 }}
-          channelId: live
-          projectId: cardoffers-5e586
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # Deploy hosting AND Firestore rules together: a rules fix merged to
+      # main must actually ship (hosting-only deploys silently skipped it).
+      - name: Deploy hosting and Firestore rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CARDOFFERS_5E586 }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          npx -y firebase-tools@14.11.2 deploy --only hosting,firestore:rules --project cardoffers-5e586
+          rm -f "$RUNNER_TEMP/firebase-sa.json"

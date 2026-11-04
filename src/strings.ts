@@ -92,6 +92,7 @@ export const strings = {
     remove: 'Remove',
     emptyTitle: 'Your wallet is empty',
     emptyBody: 'Add the cards you own to start getting best-card answers.',
+    loadError: 'We could not load your wallet. Showing the last saved copy - check your connection and reload.',
     feePerYear: '/year',
   },
   loyalty: {

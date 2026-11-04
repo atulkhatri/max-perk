@@ -163,7 +163,9 @@ export function StatementsPage(): ReactElement {
         continue;
       }
       const fresh = dedupeTransactions(p.txns).filter((t) => {
-        const key = `${t.date}|${t.description.toLowerCase().replace(/\s+/g, ' ')}|${t.amountCAD.toFixed(2)}`;
+        // Include the attributed card: the same charge on two different
+        // cards is two real charges, not a duplicate.
+        const key = `${p.cardId}|${t.date}|${t.description.toLowerCase().replace(/\s+/g, ' ')}|${t.amountCAD.toFixed(2)}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;

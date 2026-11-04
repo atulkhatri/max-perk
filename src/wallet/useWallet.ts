@@ -3,8 +3,9 @@ import type { Unsubscribe } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import type { EarnCategory } from '../data/types';
 import { db } from '../firebase';
+import { strings } from '../strings';
 import { FirestoreWalletRepository, type WalletSnapshot } from './repository';
-import { clearLocalWallet, isEmptySnapshot, loadLocalWallet, saveLocalWallet } from './localWallet';
+import { clearLocalWalletIfMatches, isEmptySnapshot, loadLocalWallet, saveLocalWallet } from './localWallet';
 
 // Last live snapshot per user: pages that mount later (every tab visit)
 // render instantly from the cache while the fresh subscription catches up,
@@ -17,6 +18,8 @@ const LOAD_TIMEOUT_MS = 8000;
 
 export function useWallet(): WalletSnapshot & {
   loading: boolean;
+  /** Set when the live wallet read fails; snapshot then holds the last good data. */
+  error: string | null;
   addCard: (cardId: string) => Promise<void>;
   removeCard: (cardId: string) => Promise<void>;
   toggleLoyaltyUsed: (loyaltyId: string) => Promise<void>;
@@ -29,6 +32,7 @@ export function useWallet(): WalletSnapshot & {
     loyaltyUsed: [],
   }));
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   // Double-taps share one in-flight write instead of racing last-writer-wins.
   const loyaltyPending = useRef<Promise<void> | null>(null);
   // Signed-out wallet lives in localStorage so the app works with no account.
@@ -49,15 +53,23 @@ export function useWallet(): WalletSnapshot & {
     }
     // First sight of this account: fold any signed-out wallet into it so
     // cards added while logged out survive the sign-in instead of vanishing.
+    // Mark merged only after the merge commits, so a transient failure is
+    // retried on the next mount/account sighting instead of being lost.
     if (!mergedUids.current.has(user.uid)) {
-      mergedUids.current.add(user.uid);
       const pending = loadLocalWallet();
-      if (!isEmptySnapshot(pending)) {
+      if (isEmptySnapshot(pending)) {
+        mergedUids.current.add(user.uid);
+      } else {
         void repo
           .mergeSnapshot(user.uid, pending)
-          .then(() => clearLocalWallet())
+          .then(() => {
+            mergedUids.current.add(user.uid);
+            // Clear by value: only the snapshot that was merged, never
+            // edits made while the merge was in flight.
+            clearLocalWalletIfMatches(pending);
+          })
           .catch(() => {
-            // Offline or denied: keep the local copy; the device still shows it.
+            // Offline or denied: keep the local copy; a later mount retries.
           });
       }
     }
@@ -74,13 +86,25 @@ export function useWallet(): WalletSnapshot & {
       if (!cancelled) setLoading(false);
     }, LOAD_TIMEOUT_MS);
     void repo
-      .subscribe(user.uid, (next) => {
-        if (cancelled) return;
-        clearTimeout(timer);
-        snapshotCache.set(user.uid, next);
-        setSnapshot(next);
-        setLoading(false);
-      })
+      .subscribe(
+        user.uid,
+        (next) => {
+          if (cancelled) return;
+          clearTimeout(timer);
+          setError(null);
+          snapshotCache.set(user.uid, next);
+          setSnapshot(next);
+          setLoading(false);
+        },
+        () => {
+          if (cancelled) return;
+          clearTimeout(timer);
+          // Keep the last good (cached) snapshot; never cache emptiness.
+          setSnapshot(snapshotCache.get(user.uid) ?? cached ?? { cardIds: [], loyaltyUsed: [] });
+          setError(strings.wallet.loadError);
+          setLoading(false);
+        },
+      )
       .then((u) => {
         if (cancelled) u();
         else unsub = u;
@@ -103,6 +127,7 @@ export function useWallet(): WalletSnapshot & {
     return {
       ...localSnap,
       loading: false,
+      error: null,
       addCard: (cardId) => {
         if (!localSnap.cardIds.includes(cardId)) {
           mutateLocal({ ...localSnap, cardIds: [...localSnap.cardIds, cardId] });
@@ -138,6 +163,7 @@ export function useWallet(): WalletSnapshot & {
   return {
     ...snapshot,
     loading,
+    error,
     addCard: (cardId) => {
       if (!user) return Promise.reject(new Error('Not signed in'));
       return repo.addCard(user.uid, cardId);

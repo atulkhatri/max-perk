@@ -69,6 +69,16 @@ export function clearLocalWallet(store: LocalWalletStore | null = defaultStore()
   }
 }
 
+/** Clear only when storage still holds exactly this snapshot (not newer edits). */
+export function clearLocalWalletIfMatches(
+  snapshot: WalletSnapshot,
+  store: LocalWalletStore | null = defaultStore(),
+): void {
+  if (!store) return;
+  const current = loadLocalWallet(store);
+  if (JSON.stringify(current) === JSON.stringify(snapshot)) clearLocalWallet(store);
+}
+
 export function isEmptySnapshot(snapshot: WalletSnapshot): boolean {
   return snapshot.cardIds.length === 0 && snapshot.loyaltyUsed.length === 0 && !snapshot.spendProfile;
 }

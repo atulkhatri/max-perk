@@ -10,6 +10,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInAnonymously,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -93,6 +94,25 @@ export function isExpiredSessionError(error: unknown): boolean {
  * through some SDK paths and auth/admin-restricted-operation through others
  * (ADMIN_ONLY_OPERATION from the REST backend).
  */
+/**
+ * Linking a provider to the guest account fails when that provider's email
+ * already belongs to a permanent account. Firebase reports this as
+ * email-already-in-use (email/password account exists), credential-already-in-use,
+ * or account-exists-with-different-credential depending on provider/settings.
+ * The fix in every case is the same: snapshot the guest wallet, sign in to the
+ * existing account, then merge. The console "link accounts that use the same
+ * email" setting only applies to a fresh sign-in, not to linkWithPopup on an
+ * anonymous account, which is why enabling it alone did not stop this error.
+ */
+export function isAccountLinkCollision(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return (
+    code === 'auth/email-already-in-use' ||
+    code === 'auth/credential-already-in-use' ||
+    code === 'auth/account-exists-with-different-credential'
+  );
+}
+
 export function isGuestDisabledError(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code;
   return code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation';
@@ -236,7 +256,21 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
   const provider = useMemo(() => new GoogleAuthProvider(), []);
 
   const signInGoogle = useCallback(async (): Promise<void> => {
-    await signInWithPopup(auth, provider);
+    const current = auth.currentUser;
+    if (!current?.isAnonymous) {
+      await signInWithPopup(auth, provider);
+      return;
+    }
+    // Signed in as guest: a plain popup sign-in would try to create a new
+    // account for the Google email and fail with email-already-in-use when
+    // that email already has an email/password account. Snapshot first, then
+    // sign in (the same-email linking setting applies to this fresh sign-in)
+    // and merge the guest wallet into the existing account.
+    const guestUid = current.uid;
+    const repo = new FirestoreWalletRepository(db);
+    const guestSnap = await readGuestSnapshot(repo, guestUid);
+    const cred = await signInWithPopup(auth, provider);
+    await adoptGuestSnapshot(repo, cred.user.uid, guestUid, guestSnap);
   }, [provider]);
 
   const linkEmail = useCallback(
@@ -287,11 +321,20 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         await signInWithPopup(auth, provider);
         return { mode: 'kept' };
       }
-      if ((err as { code?: string } | null)?.code !== 'auth/credential-already-in-use') throw err;
+      if (!isAccountLinkCollision(err)) throw err;
+      // The Google email already belongs to a permanent account (e.g. signed
+      // up with email/password first): sign into that account instead of
+      // linking, and merge the guest wallet so nothing is lost.
       const guestUid = current.uid;
       const repo = new FirestoreWalletRepository(db);
       const guestSnap = await readGuestSnapshot(repo, guestUid);
-      const cred = await signInWithPopup(auth, provider);
+      // Reuse the credential from the failed link when Firebase carried one:
+      // a second popup inside this async handler can be blocked as not
+      // user-gesture-initiated. Fall back to a fresh popup otherwise.
+      const pending = GoogleAuthProvider.credentialFromError(err as never);
+      const cred = pending
+        ? await signInWithCredential(auth, pending)
+        : await signInWithPopup(auth, provider);
       return adoptGuestSnapshot(repo, cred.user.uid, guestUid, guestSnap);
     }
   }, [provider]);

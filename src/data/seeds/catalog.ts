@@ -14,11 +14,6 @@ export const catalog: Catalog = {
   bankOffers,
 };
 
-export const cardsById = new Map(cards.map((c) => [c.id, c]));
-export const programsById = new Map(programs.map((p) => [p.id, p]));
-export const merchantsById = new Map(merchants.map((m) => [m.id, m]));
-export const loyaltyById = new Map(loyaltyPrograms.map((l) => [l.id, l]));
-
 /** Referential-integrity check for seeds; exercised by tests and at startup in dev. */
 export function validateCatalog(cat: Catalog): string[] {
   const errors: string[] = [];

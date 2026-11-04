@@ -46,7 +46,10 @@ async function attempt({ name, method, url, token: tok, body, expect }) {
     console.log(`FAIL ${name}: transport ${e.message}`);
     return false;
   }
-  const ok = expect === 'allow' ? res.status < 300 : res.status >= 400;
+  // Deny must be a rules 403 for writes/creates; a 404 on a missing doc also
+  // proves no leak for reads, so reads accept either. A bare >=400 check
+  // would let a broken (always-404) ruleset pass.
+  const ok = expect === 'allow' ? res.status < 300 : method === 'GET' ? (res.status === 403 || res.status === 404) : res.status === 403;
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name} (want ${expect}, got ${res.status})`);
   return ok;
 }
@@ -82,6 +85,7 @@ const cases = [
   { name: 'feedback create bad kind denied', method: 'POST', url: `${DB}/feedback`, token: userA.idToken, body: { fields: { kind: F('idea'), text: F('A long enough report text here'), uid: F(userA.localId), status: F('new') } }, expect: 'deny' },
   { name: 'feedback create wrong uid denied', method: 'POST', url: `${DB}/feedback`, token: userA.idToken, body: { fields: { kind: F('bug'), text: F('A long enough report text here'), uid: F(userB.localId), status: F('new') } }, expect: 'deny' },
   { name: 'feedback create extra key denied', method: 'POST', url: `${DB}/feedback`, token: userA.idToken, body: { fields: { kind: F('bug'), text: F('A long enough report text here'), uid: F(userA.localId), status: F('new'), evil: F('x') } }, expect: 'deny' },
+  { name: 'feedback create spoofed contact denied', method: 'POST', url: `${DB}/feedback`, token: userA.idToken, body: { fields: { kind: F('bug'), text: F('Filing under a victim address here'), uid: F(userA.localId), status: F('new'), contact: F('victim@example.com') } }, expect: 'deny' },
   { name: 'feedback create bad contact denied', method: 'POST', url: `${DB}/feedback`, token: userA.idToken, body: { fields: { kind: F('bug'), text: F('A long enough report text here'), uid: F(userA.localId), status: F('new'), contact: F('not-an-email') } }, expect: 'deny' },
   // feedback reads/writes (seedId only exists if REST create passed; otherwise they 404 which still proves no leak)
   { name: 'feedback cross-user get denied', method: 'GET', url: `${DB}/feedback/${seedId}`, token: userB.idToken, expect: 'deny' },
@@ -100,9 +104,9 @@ const cases = [
   { name: 'card report update denied', method: 'PATCH', url: `${DB}/cardReports/probe-missing`, token: userA.idToken, body: { fields: { status: F('done') } }, expect: 'deny' },
   { name: 'card report delete denied', method: 'DELETE', url: `${DB}/cardReports/probe-missing`, token: userA.idToken, expect: 'deny' },
   // wallet/user locks
-  { name: 'wallet junk field denied', method: 'POST', url: `${DB}/users/${userA.localId}/wallet/amex-cobalt`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() }, evil: F('x') } }, expect: 'deny' },
-  { name: 'wallet bad card id denied', method: 'POST', url: `${DB}/users/${userA.localId}/wallet/BAD ID!`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() } } }, expect: 'deny' },
-  { name: 'wallet cross-user denied', method: 'POST', url: `${DB}/users/${userB.localId}/wallet/amex-cobalt`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() } } }, expect: 'deny' },
+  { name: 'wallet junk field denied', method: 'PATCH', url: `${DB}/users/${userA.localId}/wallet/amex-cobalt`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() }, evil: F('x') } }, expect: 'deny' },
+  { name: 'wallet bad card id denied', method: 'PATCH', url: `${DB}/users/${userA.localId}/wallet/BAD ID!`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() } } }, expect: 'deny' },
+  { name: 'wallet cross-user denied', method: 'PATCH', url: `${DB}/users/${userB.localId}/wallet/amex-cobalt`, token: userA.idToken, body: { fields: { addedAt: { timestampValue: new Date().toISOString() } } }, expect: 'deny' },
   { name: 'users junk field denied', method: 'PATCH', url: `${DB}/users/${userA.localId}`, token: userA.idToken, body: { fields: { loyaltyUsed: F(['x']), evil: F('y') } }, expect: 'deny' },
   { name: 'users oversize loyalty denied', method: 'PATCH', url: `${DB}/users/${userA.localId}`, token: userA.idToken, body: { fields: { loyaltyUsed: F(loyalty51) } }, expect: 'deny' },
   { name: 'users negative spend denied', method: 'PATCH', url: `${DB}/users/${userA.localId}`, token: userA.idToken, body: { fields: { spendProfile: F({ grocery: -5 }) } }, expect: 'deny' },
