@@ -118,11 +118,11 @@ export function buildSystemPrompt(merchants: MerchantRef[], dataAsOf: string): s
     '1. Output JSON only, matching the provided schema. Never recommend a card.',
     '2. Split multi-category descriptions into one leg per category.',
     '3. merchantId must be an id from the store list below, or omitted when no store matches.',
-    '4. spendCAD is a single number in CAD, or omitted when no amount is stated.',
+    '4. spendCAD is the dollar amount stated for that leg, copied exactly as written ($500 to 500). Record the stated number even when its period (weekly, monthly) is unclear; never normalize periods yourself. Only use 0 when the text states no amount at all for that leg.',
     '5. storeName is the store name as typed when it is NOT in the tracked list below; set merchantId to "" then.',
     '5b. Every leg object must include ALL keys (merchantId, storeName, earn, context, spendCAD): use "" for absent strings and 0 for absent spendCAD.',
     '6. There is no entertainment or general-shopping category: use other for those.',
-    '7. Set confidence below 0.7 and include a short clarification question when the text is ambiguous.',
+    '7. Set confidence 0.85 or higher when every leg has a category and an amount. A leg with no named store is still confident: leave both store keys empty and let category ranking handle it. Go below 0.7 and include a short clarification question only when a category itself is genuinely ambiguous. Never claim amounts were unstated when the text contains dollar figures.',
     `Catalog snapshot: ${dataAsOf}. Tracked stores:`,
     list,
   ].join('\n');

@@ -132,9 +132,10 @@ export const askPick = onCall(
         logger.warn('askPick model output unparseable', { preview: content.slice(0, 300) });
         return { ok: false, error: 'invalid' } as const;
       }
+      logger.info('askPick model content', { preview: content.slice(0, 1500) });
       const checked = validatePickLegs(parsed, merchants);
       if (!checked) {
-        logger.info('askPick validation rejected output');
+        logger.info('askPick validation rejected output', { parsed: JSON.stringify(parsed).slice(0, 1500) });
       }
       if (!checked || 'clarification' in checked) {
         return {
