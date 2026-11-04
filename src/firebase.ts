@@ -5,29 +5,6 @@ import { config } from './config';
 
 export const app = initializeApp(config.firebase);
 
-// App Check (abuse protection for the public web key): initialized only when
-// a reCAPTCHA v3 site key is configured, so local/emulator builds without
-// one keep working. Enforcement is switched on in the Firebase console;
-// without it this only attests, it does not block.
-//
-// Initialization MUST finish before getFirestore() runs: a Firestore
-// instance created first captures no App Check token provider, so every
-// request for the life of the page goes out unattested and is rejected
-// once enforcement is on. getDb() awaits this promise for exactly that
-// reason (a plain dynamic-import race here caused "could not load your
-// wallet" for every signed-in user after enforcement was enabled).
-export const appCheckReady: Promise<void> = config.appCheckSiteKey
-  ? import('firebase/app-check')
-      .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
-        initializeAppCheck(app, {
-          provider: new ReCaptchaV3Provider(config.appCheckSiteKey),
-          isTokenAutoRefreshEnabled: true,
-        });
-      })
-      .catch(() => {
-        // App Check is defense in depth; never block the app on it.
-      })
-  : Promise.resolve();
 export const auth = getAuth(app);
 export const usingEmulators = config.useEmulators;
 
@@ -49,8 +26,6 @@ export const db = getDb();
 export function getDb(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
-      // App Check first: Firestore must be instantiated after initializeAppCheck.
-      await appCheckReady;
       const { connectFirestoreEmulator, getFirestore } = await import('firebase/firestore');
       const firestore = getFirestore(app);
       if (config.useEmulators && !(globalThis as Record<string, unknown>)[DB_FLAG]) {

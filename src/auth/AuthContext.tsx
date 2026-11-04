@@ -173,6 +173,10 @@ export async function adoptGuestSnapshot(
 
 export function AuthProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [user, setUser] = useState<User | null>(null);
+  // Bumped after an in-place anonymous upgrade (linkEmail/linkGoogle): the
+  // SDK mutates the same user object (same uid, so onAuthStateChanged never
+  // fires) and only re-renders when the context value identity changes.
+  const [userEpoch, setUserEpoch] = useState(0);
   const [loading, setLoading] = useState(true);
   const [guestError, setGuestError] = useState<string | null>(null);
   const anonAttempt = useRef<Promise<void> | null>(null);
@@ -284,6 +288,11 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
         // Fresh credential: the anonymous account upgrades in place, so the
         // wallet (keyed by the same uid) carries over with no migration.
         await linkWithCredential(current, EmailAuthProvider.credential(email, password));
+        // The SDK mutates the linked user in place (same uid, so the
+        // onAuthStateChanged observer never fires): bump the epoch so the
+        // context value identity changes and consumers re-render with the
+        // live (now permanent) user object.
+        setUserEpoch((e) => e + 1);
         return { mode: 'kept' };
       } catch (err) {
         if (isExpiredSessionError(err)) {
@@ -314,6 +323,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
     }
     try {
       await linkWithPopup(current, provider);
+      // Same-uid upgrade: the onAuthStateChanged observer never fires, so
+      // bump the epoch to re-render with the live (now permanent) object.
+      setUserEpoch((e) => e + 1);
       return { mode: 'kept' };
     } catch (err) {
       if (isExpiredSessionError(err)) {
@@ -373,7 +385,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       signOutUser,
       sendPasswordReset,
     }),
-    [user, loading, guestError, signInEmail, signUpEmail, signInGoogle, signInAnonymouslyOnce, linkEmail, linkGoogle, signOutUser, sendPasswordReset],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, userEpoch, loading, guestError, signInEmail, signUpEmail, signInGoogle, signInAnonymouslyOnce, linkEmail, linkGoogle, signOutUser, sendPasswordReset],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

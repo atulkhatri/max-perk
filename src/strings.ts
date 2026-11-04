@@ -88,6 +88,7 @@ export const strings = {
     searchNote: '(supports all major Canadian cards - more countries coming soon)',
     addTitle: 'Add a card',
     searchPlaceholder: 'Search Canadian cards…',
+    noResults: 'No cards match that search.',
     add: 'Add',
     remove: 'Remove',
     emptyTitle: 'Your wallet is empty',

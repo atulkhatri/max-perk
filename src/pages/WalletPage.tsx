@@ -25,8 +25,10 @@ export function WalletPage(): ReactElement {
     );
   }, [query, catalog]);
 
+  const trimmedQuery = query.trim();
   const owned = filtered.filter((c) => cardIds.includes(c.id));
-  const others = filtered.filter((c) => !cardIds.includes(c.id));
+  // Unowned cards stay hidden until the user searches: type to find and add.
+  const others = trimmedQuery ? filtered.filter((c) => !cardIds.includes(c.id)) : [];
 
   if (loading || catalogLoading)
     return <p className="text-sm text-muted-foreground">{strings.common.loading}</p>;
@@ -60,6 +62,10 @@ export function WalletPage(): ReactElement {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+
+      {trimmedQuery && owned.length === 0 && others.length === 0 && (
+        <p className="text-sm text-muted-foreground">{strings.wallet.noResults}</p>
+      )}
 
       {cardIds.length === 0 && (
         <Card className="p-[18px]">

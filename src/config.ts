@@ -13,8 +13,6 @@ export interface FirebaseWebConfig {
 
 export interface AppConfig {
   firebase: FirebaseWebConfig;
-  /** reCAPTCHA v3 site key for App Check; empty disables App Check init. */
-  appCheckSiteKey: string;
   useEmulators: boolean;
   authEmulatorHost: string;
   firestoreEmulatorHost: string;
@@ -42,7 +40,6 @@ export const config: AppConfig = {
     appId: required('VITE_FIREBASE_APP_ID'),
     measurementId: optional('VITE_FIREBASE_MEASUREMENT_ID', ''),
   },
-  appCheckSiteKey: optional('VITE_FIREBASE_APPCHECK_SITE_KEY', ''),
   useEmulators: optional('VITE_USE_EMULATORS', 'false') === 'true',
   authEmulatorHost: optional('VITE_AUTH_EMULATOR_HOST', 'http://127.0.0.1:9099'),
   firestoreEmulatorHost: optional('VITE_FIRESTORE_EMULATOR_HOST', '127.0.0.1'),
