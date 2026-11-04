@@ -87,7 +87,7 @@ export const strings = {
     title: 'Ask in your own words',
     body: 'Describe your purchase and AI will figure out which card you should use.',
     label: 'Describe your purchase',
-    placeholder: 'e.g. $500 groceries at Costco, $100 gas, $100 movies',
+    placeholder: 'e.g. $500 groceries at Metro, $100 gas, $100 movies',
     action: 'Find my card',
     consent: 'Sent to AI for parsing only. Never stored or used for anything else.',
     understanding: 'Understood as',

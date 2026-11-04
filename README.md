@@ -57,6 +57,40 @@ flowchart LR
     SPA -.->|"local dev"| EMU["Emulators (auth + Firestore)"]
 ```
 
+## Built with Meta Muse (hackathon)
+
+Before the Meta Global AI Developer Hackathon there was only an idea. The
+whole product — PRD, scope, implementation plan, and code — was planned
+and built during the event with Meta's Muse models:
+
+- **Muse Spark** — product planning (PRD, scope, implementation plan)
+  and the runtime model below.
+- **Muse Wonder** — implementation through Muse, end to end.
+- **Runtime** — "Ask in your own words" sends the typed sentence to the
+  `askPick` Firebase Cloud Function, which calls Muse Spark 1.3 through
+  the Meta Model API (`https://api.meta.ai/v1/chat/completions`, strict
+  `json_schema`). The model only parses intent (merchant, category,
+  amount) into purchase legs; the deterministic ranking engine picks the
+  card. The API key is a server-side Firebase secret, never in the
+  browser:
+  - Production: `firebase functions:secrets:set MODEL_API_KEY`
+  - Local emulator: put `MODEL_API_KEY=...` in `functions/.secret.local`
+    (gitignored), then restart the emulators.
+  Guardrails: sign-in required, 30 calls per user per day, a confidence
+  gate (below 0.7 the model asks a clarifying question instead of
+  guessing), and a kill switch (`config/askPick {enabled:false}` in
+  Firestore) that hides the feature with no deploy.
+
+Everything else in the app (wallet, catalog, ranking, statements) runs
+without any model: ranking is deterministic TypeScript, and statement
+analysis happens entirely in the browser.
+
+Third-party pieces to know about: React + Vite, Firebase (Auth,
+Firestore, Functions, Hosting), shadcn/ui + Tailwind, Lucide icons.
+Card and merchant data is curated from official issuer pages (no
+third-party datasets). Demo footage and traces from development are
+kept with the hackathon submission notes.
+
 ## Future Milestones
 
 - More countries: USA credit cards next, then international coverage.

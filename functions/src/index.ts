@@ -22,6 +22,7 @@ const MAX_CALLS_PER_DAY = 30;
 export const askPick = onCall(
   { secrets: [MODEL_API_KEY], timeoutSeconds: 30, memory: '256MiB' },
   async (request) => {
+    const startedAt = Date.now();
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Sign in to use ask-pick.');
     }
@@ -133,6 +134,7 @@ export const askPick = onCall(
         return { ok: false, error: 'invalid' } as const;
       }
       logger.info('askPick model content', { preview: content.slice(0, 1500) });
+      logger.info('askPick model call', { model: MODEL_ID, ms: Date.now() - startedAt });
       const checked = validatePickLegs(parsed, merchants);
       if (!checked) {
         logger.info('askPick validation rejected output', { parsed: JSON.stringify(parsed).slice(0, 1500) });
