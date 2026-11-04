@@ -116,6 +116,16 @@ export function CheckPage(): ReactElement {
   }
 
   function handleInterpret(legs: ParsedLeg[], note: string): void {
+    // Prefill the manual form with the first leg so "edit the details below
+    // and check again" is literally true, even for multi-leg baskets.
+    const first = legs[0];
+    if (first) {
+      const trackedFirst = first.merchantId ? catalog.merchants.find((m) => m.id === first.merchantId) : undefined;
+      setStoreQuery(trackedFirst ? trackedFirst.name : (first.storeName?.trim() || ''));
+      setMerchantId(trackedFirst?.id);
+      setPurchaseType(first.earn as PurchaseTypeKey);
+      setSpend(first.spendCAD !== undefined ? String(first.spendCAD) : '');
+    }
     const mapped = legs.map((leg) => {
       const tracked = leg.merchantId ? catalog.merchants.find((m) => m.id === leg.merchantId) : undefined;
       const merchant =
