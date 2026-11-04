@@ -52,16 +52,24 @@ describe('validatePickLegs', () => {
     });
   });
 
-  it('rejects bad enums and absurd spend', () => {
+  it('treats zero spend as absent, rejects NaN and absurd spend', () => {
+    const zero = validatePickLegs(
+      { legs: [{ earn: 'grocery', context: 'general', spendCAD: 0 }], interpretation: 'x', confidence: 0.9 },
+      merchants,
+    );
+    expect(zero && 'legs' in zero && zero.legs[0]).not.toHaveProperty('spendCAD');
     expect(
       validatePickLegs(
-        { legs: [{ earn: 'streaming', context: 'general' }], interpretation: 'x', confidence: 0.9 },
+        { legs: [{ earn: 'grocery', context: 'general', spendCAD: 2e9 }], interpretation: 'x', confidence: 0.9 },
         merchants,
       ),
     ).toBeNull();
+  });
+
+  it('rejects bad enums', () => {
     expect(
       validatePickLegs(
-        { legs: [{ earn: 'grocery', context: 'general', spendCAD: -5 }], interpretation: 'x', confidence: 0.9 },
+        { legs: [{ earn: 'streaming', context: 'general' }], interpretation: 'x', confidence: 0.9 },
         merchants,
       ),
     ).toBeNull();

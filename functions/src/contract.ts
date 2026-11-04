@@ -89,10 +89,14 @@ export function validatePickLegs(
       out.storeName = leg['storeName'].trim().slice(0, 80);
     }
     if (typeof leg['spendCAD'] === 'number') {
-      if (!Number.isFinite(leg['spendCAD']) || leg['spendCAD'] <= 0 || leg['spendCAD'] > 1_000_000) {
+      // spendCAD is schema-required, so the model emits 0 when no amount was
+      // stated: treat non-positive as absent, absurd as invalid.
+      if (!Number.isFinite(leg['spendCAD']) || leg['spendCAD'] > 1_000_000) {
         return null;
       }
-      out.spendCAD = Math.round(leg['spendCAD'] * 100) / 100;
+      if (leg['spendCAD'] > 0) {
+        out.spendCAD = Math.round(leg['spendCAD'] * 100) / 100;
+      }
     }
     legs.push(out);
   }
@@ -115,7 +119,8 @@ export function buildSystemPrompt(merchants: MerchantRef[], dataAsOf: string): s
     '2. Split multi-category descriptions into one leg per category.',
     '3. merchantId must be an id from the store list below, or omitted when no store matches.',
     '4. spendCAD is a single number in CAD, or omitted when no amount is stated.',
-    '5. storeName is the store name as typed when it is NOT in the tracked list below; omit merchantId then.',
+    '5. storeName is the store name as typed when it is NOT in the tracked list below; set merchantId to "" then.',
+    '5b. Every leg object must include ALL keys (merchantId, storeName, earn, context, spendCAD): use "" for absent strings and 0 for absent spendCAD.',
     '6. There is no entertainment or general-shopping category: use other for those.',
     '7. Set confidence below 0.7 and include a short clarification question when the text is ambiguous.',
     `Catalog snapshot: ${dataAsOf}. Tracked stores:`,

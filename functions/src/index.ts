@@ -15,7 +15,7 @@ initializeApp();
 
 const MODEL_API_KEY = defineSecret('MODEL_API_KEY');
 const MODEL_ID = 'muse-spark-1.3';
-const MODEL_TIMEOUT_MS = 8000;
+const MODEL_TIMEOUT_MS = 25000;
 const MAX_CALLS_PER_DAY = 30;
 
 /** Client sends the raw sentence; the key and catalog never leave the server. */
@@ -103,14 +103,14 @@ export const askPick = onCall(
                         spendCAD: { type: 'number' },
                         storeName: { type: 'string' },
                       },
-                      required: ['earn', 'context'],
+                      required: ['merchantId', 'storeName', 'earn', 'context', 'spendCAD'],
                     },
                   },
                   interpretation: { type: 'string' },
                   confidence: { type: 'number' },
                   clarification: { type: 'string' },
                 },
-                required: ['legs', 'interpretation', 'confidence'],
+                required: ['legs', 'interpretation', 'confidence', 'clarification'],
               },
             },
           },
